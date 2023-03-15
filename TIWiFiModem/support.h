@@ -201,6 +201,8 @@ int receiveTcpData() {
                   case LFLOW:
                   case NEW_ENVIRON:
                   case XDISPLOC:
+                  case COMPRESS:
+                  case COMPRESS2:
                      bytesOut += tcpClient.write(DONT);
                      break;
                   default:

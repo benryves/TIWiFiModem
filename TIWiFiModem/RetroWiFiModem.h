@@ -52,6 +52,8 @@
    #define LINEMODE  ((uint8_t)34)
    #define XDISPLOC  ((uint8_t)35)
    #define NEW_ENVIRON ((uint8_t)39)
+   #define COMPRESS  ((uint8_t)85)
+   #define COMPRESS2 ((uint8_t)86)
    #define BINARY    ((uint8_t)0)
    #define ECHO      ((uint8_t)1)
    #define SUP_GA    ((uint8_t)3)
