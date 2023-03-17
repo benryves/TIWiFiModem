@@ -4,7 +4,7 @@
 ;
 ;       1998 Justin Karneges
 ;
-;       Telnet83 V1.5
+;       Telnet83 V1.6
 ;
 ;       Telnet83 is a terminal program for the TI-83.  It has an 80x25
 ;       scrolling view and vt100 emulation.
@@ -75,7 +75,7 @@ button:
 	.db	%00000000,%00000000
 
 ;desc:
-	.db     "Telnet83+ V1.5 by Infiniti",0
+	.db     "Telnet83+ V1.6 by Infiniti",0
 
 
 
@@ -2249,7 +2249,7 @@ keypad_table5:
 _blackstamp     .db 255,255,255,255,255,255,255,255
 
 term
-        .db "TELNET 83 v1.5          "
+        .db "TELNET 83 v1.6          "
          .db "                        "
          .db "                        "
          .db "        "

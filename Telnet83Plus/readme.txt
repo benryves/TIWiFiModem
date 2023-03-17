@@ -1,5 +1,5 @@
 -------------------------
-Telnet 83 v1.5!  11/10/98
+Telnet 83 v1.6!  11/10/98
 -------------------------
 Justin Karneges
 http://www.bigfoot.com/~infiniti99/telnet83.html
@@ -9,6 +9,17 @@ Ti-83 Plus MirageOS port by Dan Englender
 http://tcpa.calc.org
 dan@calc.org
 Any questions regarding the 83 Plus version should be sent to Dan.
+
+Bug fixes in 1.6 release by Ben Ryves
+https://benryves.com
+benryves@benryves.com
+
+*** Changes since v1.5 ***
+- slowed down writing to the screen to prevent corrupt/scrambled display on
+  newer calculator hardware with slower LCD drivers.
+- fixed BEJOTY keys producing lowercase letters when in capital mode.
+- added overflow check to the receive buffer, large transfers are no longer
+  truncated.
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
