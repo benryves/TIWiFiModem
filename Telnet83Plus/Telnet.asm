@@ -393,7 +393,7 @@ appvarexists:
 appvararchived:
 
         ; is there enough free RAM to unarchive it?
-        ld      hl, term_s + data_s + 256
+        ld      hl, term_s + sdata_s + 256
         bcall(_EnoughMem)
         ret     c
         
@@ -412,7 +412,7 @@ checkappvarsize:
         ex      de, hl
         
         ; check the expected size
-        ld      bc, term_s + data_s
+        ld      bc, term_s + sdata_s
         or      a
         sbc     hl, bc
         
@@ -428,15 +428,19 @@ saveappvar:
         jr      nc, overwriteappvar
         
         ; is there enough space to create the appvar?
-        ld      hl, term_s + data_s + 256
+        ld      hl, term_s + sdata_s + 256
         bcall(_EnoughMem)
         ret     c
         
         ; create the appvar
-        ld      hl, term_s + data_s
+        ld      hl, term_s + sdata_s
         bcall(_CreateAppVar)
 
 overwriteappvar:
+        ; restore character under the cursor
+        push    de
+        call    cursor_off
+        pop     de
 
         call    checkappvarsize
         ret     c
@@ -447,8 +451,8 @@ overwriteappvar:
         ldir
         
         ; copy variable data
-        ld      hl, data
-        ld      bc, data_s
+        ld      hl, sdata
+        ld      bc, sdata_s
         ldir
         
         or      a
@@ -470,8 +474,8 @@ loadappvar:
         ldir
         
         ; copy variable data
-        ld      de, data
-        ld      bc, data_s
+        ld      de, sdata
+        ld      bc, sdata_s
         ldir
         
         or      a
@@ -2570,19 +2574,14 @@ mmg4
 ;-----------+----------------------------------------------------+----------+
 
 data        = saveSScreen
+
+; saved data
 sdata       = data
 
-shift       = data + 0          ; .db     0
+shift       = sdata + 0         ; .db     0
 wrap        = shift + 1         ; .db     80
 
-rtmp        = wrap + 1          ; .db     0,0,0,0,0,0,0,0
-rinv        = rtmp + 8          ; .db     0
-
-rptr        = rinv + 1          ; .dw     0
-rtype       = rptr + 2          ; .db     0
-
-check_partial = rtype + 1       ; .db     0
-curx        = check_partial + 1 ; .db     0       ; - Cursor position (in characters)
+curx        = wrap + 1          ; .db     0       ; - Cursor position (in characters)
 pcury       = curx + 1          ; .db     8       ; /
 sx          = pcury + 1         ; .db     0       ; - Screen position (in characters)
 sy          = sx + 1            ; .db     0       ; /
@@ -2590,19 +2589,35 @@ sy          = sx + 1            ; .db     0       ; /
 scr_top     = sy + 1            ; .db     0       ; top of scrolling region
 scr_bot     = scr_top + 1       ; .db     23      ; bottom of scrolling region
 
-timer       = scr_bot  + 1      ; .db     0       ; Timer used for flashing cursor
+curattr     = scr_bot + 1       ; .db     0       ; cursor attributes (bold, inverse, etc)
+
+mm_mode     = curattr + 1       ; .db     1       ; minimap mode on?
+
+sdata_end   = mm_mode + 1
+sdata_s     = sdata_end - sdata
+
+; temporary data
+tdata       = sdata_end
+
+rtmp        = tdata + 0         ; .db     0,0,0,0,0,0,0,0
+rinv        = rtmp + 8          ; .db     0
+
+rptr        = rinv + 1          ; .dw     0
+rtype       = rptr + 2          ; .db     0
+
+check_partial = rtype + 1       ; .db     0
+
+timer       = check_partial + 1 ; .db     0       ; Timer used for flashing cursor
 curstat     = timer + 1         ; .db     0       ; Current status of cursor
 curshad     = curstat + 1       ; .db     0       ; Character that's behind the cursor
-curattr     = curshad + 1       ; .db     0       ; cursor attributes (bold, inverse, etc)
 
-sendstat    = curattr + 1       ; .db    0  ; flag to force statusbar to display send status
+sendstat    = curshad + 1       ; .db    0  ; flag to force statusbar to display send status
                                 ; upon keypress even if it was sent so fast that
                                 ; there's no data pending
 
 panned      =  sendstat + 1     ; .db     0       ; did you pan the screen during the previous loop?
-mm_mode     = panned + 1        ; .db     1       ; minimap mode on?
 
-n           = mm_mode + 1       ; .dw     0       ; temp var
+n           = panned + 1        ; .dw     0       ; temp var
 n2          = n + 2             ; .dw     0       ; temp var
 
 ;-----------+----------------------------------------------------+----------+
@@ -2620,8 +2635,11 @@ in_seq      = seqbuf + 20       ; .db     0
 ; backup of register SP
 ;spbackup .dw    0
 
-data_end    = in_seq + 1
-data_s      = data_end - data
+tdata_end   = in_seq + 1
+tdata_s     = tdata_end - tdata
+
+data_end    = tdata_end + 0
+data_s      = sdata_s + tdata_s
 
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Code from Zterm for the TI-85 (Zshell)             | Infiniti |
