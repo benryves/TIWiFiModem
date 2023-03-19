@@ -85,7 +85,11 @@ button:
 ; Telnet 83 | Program                                            | Infiniti |
 ;-----------+----------------------------------------------------+----------+
 start:
-
+    
+    ; benryves: we need to try to find the appvar before allocating buffers
+    ; in case it's archived and we need to move it into RAM.
+    call    findappvar
+    
     ; benryves: allocate buffers by inserting memory into the end of the program
     
     ; first check for enough free memory
@@ -158,6 +162,9 @@ signon_char_loop:
 
 
 signon_end:
+
+    ; load data from the appvar
+    call    loadappvar
 
 ;        call    RINDOFF         ; Turn off runindicator (not needed)
 	bcall(_grbufclr)		;        call    BUFCLR          ; Clear the graphbuf
@@ -356,11 +363,122 @@ aftertimer:
         jp      mainloop        ; loop back to the top!
 
 exit:
+        ; benryves: store program state in appvar
+        call    saveappvar
+
         ; benryves: free dynamically-allocated buffers
         ld      hl, buffers
         ld      de, buffers_s
         bcall(_DelMem)
         jp      quittoshell
+
+;-----------+----------------------------------------------------+----------+
+; Telnet 83 | AppVar helper functions                            | benryves |
+;-----------+----------------------------------------------------+----------+
+
+; find the existing appvar and unarchive it if possible
+findappvar:
+        ; does the appvar exist?
+        ld      hl, appvarname
+        rst     rMOV9TOOP1
+        bcall(_ChkFindSym)
+        ret     c
+        
+appvarexists:
+        ; is the appvar in the archive?
+        ld      a, b
+        or      a
+        ret     z
+
+appvararchived:
+
+        ; is there enough free RAM to unarchive it?
+        ld      hl, term_s + data_s + 256
+        bcall(_EnoughMem)
+        ret     c
+        
+        ; unarchive the appvar and search for it again
+        bcall(_Arc_Unarc)
+        jr      findappvar
+
+
+checkappvarsize:
+        ; fetch size bytes into HL
+        ex      de, hl
+        ld      e, (hl)
+        inc     hl
+        ld      d, (hl)
+        inc     hl
+        ex      de, hl
+        
+        ; check the expected size
+        ld      bc, term_s + data_s
+        or      a
+        sbc     hl, bc
+        
+        ; set the carry flag if size mismatch
+        scf
+        ret     nz
+        or      a
+        ret
+
+; save the program state to the appvar
+saveappvar:
+        call    findappvar
+        jr      nc, overwriteappvar
+        
+        ; is there enough space to create the appvar?
+        ld      hl, term_s + data_s + 256
+        bcall(_EnoughMem)
+        ret     c
+        
+        ; create the appvar
+        ld      hl, term_s + data_s
+        bcall(_CreateAppVar)
+
+overwriteappvar:
+
+        call    checkappvarsize
+        ret     c
+        
+        ; copy the terminal buffer over
+        ld      hl, term
+        ld      bc, term_s
+        ldir
+        
+        ; copy variable data
+        ld      hl, data
+        ld      bc, data_s
+        ldir
+        
+        or      a
+        ret
+
+; load the program state from the appvar
+loadappvar:
+        call    findappvar
+        ret     c
+        
+        call    checkappvarsize
+        ret     c
+        
+        ex      de, hl
+        
+        ; copy the terminal buffer over
+        ld      de, term
+        ld      bc, term_s
+        ldir
+        
+        ; copy variable data
+        ld      de, data
+        ld      bc, data_s
+        ldir
+        
+        or      a
+        ret
+
+appvarname:
+    .db AppVarObj, "TELNET", 0
 
 ;        ld      sp, (spbackup)
 ;        call    CLRTSHD         ; Clear textshadow
@@ -2452,6 +2570,7 @@ mmg4
 ;-----------+----------------------------------------------------+----------+
 
 data        = saveSScreen
+sdata       = data
 
 shift       = data + 0          ; .db     0
 wrap        = shift + 1         ; .db     80

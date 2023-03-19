@@ -129,9 +129,9 @@ recvbyte2:
 
 ;send_start      .dw     0
 ;send_end        .dw     0
-recv_start      = OP3 + 0
-recv_end        = OP3 + 2
-recv_free       = OP3 + 4
+recv_start      = OP6 + 0
+recv_end        = OP6 + 2
+recv_free       = OP6 + 4
 
 ;sendbuf
 ;.dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
