@@ -56,27 +56,27 @@ PORT    .equ    0
 
 
   ret
-  .db	3
+  .db   3
 button:
-	.db	%00000000,%00000000
-	.db	%00000000,%00000000
-	.db	%00111011,%10100000
-	.db	%00010010,%00100000
-	.db	%00010011,%00100000
-	.db	%00010010,%00100000
-	.db	%00010011,%10111000
-	.db	%00000000,%00000000
-	.db	%00110011,%10111000
-	.db	%00101010,%00010000
-	.db	%00101011,%00010000
-	.db	%00101010,%00010000
-	.db	%00101011,%10010000
-	.db	%00000000,%00000000
-	.db	%00000000,%00000000
+    .db %00000000,%00000000
+    .db %00000000,%00000000
+    .db %00111011,%10100000
+    .db %00010010,%00100000
+    .db %00010011,%00100000
+    .db %00010010,%00100000
+    .db %00010011,%10111000
+    .db %00000000,%00000000
+    .db %00110011,%10111000
+    .db %00101010,%00010000
+    .db %00101011,%00010000
+    .db %00101010,%00010000
+    .db %00101011,%10010000
+    .db %00000000,%00000000
+    .db %00000000,%00000000
     .dw exit
 
 ;desc:
-	.db     "Telnet83+ V1.6 by Infiniti",0
+    .db "Telnet83+ V1.6 by Infiniti",0
 
 
 
@@ -86,96 +86,96 @@ button:
 ;-----------+----------------------------------------------------+----------+
 start:
     
-    ; benryves: we need to try to find the appvar before allocating buffers
-    ; in case it's archived and we need to move it into RAM.
-    call    findappvar
-    
-    ; benryves: allocate buffers by inserting memory into the end of the program
-    
-    ; first check for enough free memory
-    ld      hl, buffers_s
-    bcall(_EnoughMem)
-    jp     c, quittoshell
-    
-    ; if there is, insert it into the variable
-    ex      de, hl
-    ld      de, buffers
-    bcall(_InsertMem)
-    
-    ; clear buffers
-    ld      a, ' '
-    ld      (de), a
-    push    de
-    pop     hl
-    inc     de
-    ld      bc, buffers_s - 1
-    ldir
-    
-    ; clear data
-    ld      hl, data
-    ld      de, data + 1
-    ld      bc, data_s - 1
-    ld      (hl), 0
-    ldir
-    
-    ; set certain non-zero variables
-    ld      a, 80
-    ld      (wrap), a
-    ld      a, 23
-    ld      (scr_bot), a
-    ld      a, 1
-    ld      (mm_mode), a
-    
-    ; default sign-on message
-    ld      hl, signon
-    ld      de, term
-    ld      ix, pcury
+        ; benryves: we need to try to find the appvar before allocating buffers
+        ; in case it's archived and we need to move it into RAM.
+        call    findappvar
+        
+        ; benryves: allocate buffers by inserting memory into the end of the program
+        
+        ; first check for enough free memory
+        ld      hl, buffers_s
+        bcall(_EnoughMem)
+        jp     c, quittoshell
+        
+        ; if there is, insert it into the variable
+        ex      de, hl
+        ld      de, buffers
+        bcall(_InsertMem)
+        
+        ; clear buffers
+        ld      a, ' '
+        ld      (de), a
+        push    de
+        pop     hl
+        inc     de
+        ld      bc, buffers_s - 1
+        ldir
+        
+        ; clear data
+        ld      hl, data
+        ld      de, data + 1
+        ld      bc, data_s - 1
+        ld      (hl), 0
+        ldir
+        
+        ; set certain non-zero variables
+        ld      a, 80
+        ld      (wrap), a
+        ld      a, 23
+        ld      (scr_bot), a
+        ld      a, 1
+        ld      (mm_mode), a
+        
+        ; default sign-on message
+        ld      hl, signon
+        ld      de, term
+        ld      ix, pcury
 
 signon_line_loop:
 
-    ld      a, (hl)
-    inc     hl
-    or      a
-    jr      z, signon_end
-    
-    push    de
+        ld      a, (hl)
+        inc     hl
+        or      a
+        jr      z, signon_end
+        
+        push    de
 
 signon_char_loop:
-    ld      (de), a
-    inc     de
-    ld      a, (hl)
-    inc     hl
-    or      a
-    jr      nz, signon_char_loop
+        ld      (de), a
+        inc     de
+        ld      a, (hl)
+        inc     hl
+        or      a
+        jr      nz, signon_char_loop
+        
+        pop     de
     
-    pop     de
-    
-    ; advance to next line
-    ex      de, hl
-    ld      bc, 80
-    add     hl, bc
-    ex      de, hl
-    
-    inc     (ix)
-    
-    jr      signon_line_loop
+        ; advance to next line
+        ex      de, hl
+        ld      bc, 80
+        add     hl, bc
+        ex      de, hl
+        
+        inc     (ix)
+        
+        jr      signon_line_loop
 
 
 signon_end:
 
-    ; load data from the appvar
-    call    loadappvar
+        ; load data from the appvar
+        call    loadappvar
 
 ;        call    RINDOFF         ; Turn off runindicator (not needed)
-	bcall(_grbufclr)		;        call    BUFCLR          ; Clear the graphbuf
-	bcall(_grbufcpy)		;        call    BUFCOPY         ; Copy the graphbuf to the LCD
-			;*****Using getcsc instead of getk, b/c getk is aka poop
-	bcall(_getcsc)		;        call    READKEY         ; Clear out the keypad buffer
+        bcall(_grbufclr)        ;        call    BUFCLR          ; Clear the graphbuf
+        bcall(_grbufcpy)        ;        call    BUFCOPY         ; Copy the graphbuf to the LCD
+    ;*****Using getcsc instead of getk, b/c getk is aka poop
+        bcall(_getcsc)          ;        call    READKEY         ; Clear out the keypad buffer
 ;        ld      (spbackup), sp  ; backup the stack (for use with quitting) (quittoshell)
 
 
         call    buildtable      ; build the font table
-		call	recv_init		; benryves: initialise the receive buffer
+        call    recv_init       ; benryves: initialise the receive buffer
 
 mainloop:
       call    catchup         ; *-* LINK CHECK *+*
@@ -193,7 +193,7 @@ mainloop:
         call    render_minimap
 no_minimap:
 
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ld      (panned), a
 
         call    zap             ; copy to LCD
@@ -211,8 +211,8 @@ no_minimap:
 ;        LD  A, $FF \ OUT ($01), A     ; Reset Port
 ;        LD  A, $FE \ OUT ($01), A     ; Mask out Arrows
 ;        IN  A, ($01)
-	ld	a,$FE
-	call	directin
+        ld      a,$FE
+        call    directin
         BIT 0, A \ CALL Z, scroll_down
         BIT 3, A \ CALL Z, scroll_up
         BIT 1, A \ CALL Z, scroll_left
@@ -226,25 +226,25 @@ no_directarrow:
         ; --- check keypad the normal way and respond accordingly ---
         call    catchup         ; *-* LINK CHECK *+*
         bcall(_getcsc)          ;        call    getch
-        cp	skGraph             ;        cp      15h
+        cp      skGraph             ;        cp      15h
         jp      z, exit         ; quit
-        cp	skClear             ;        cp      45h
+        cp      skClear             ;        cp      45h
         call    z, vt100entirescreen
-        cp	skZoom              ;        cp      13h
+        cp      skZoom              ;        cp      13h
         call    z, jumphome     ; zoom to the left edge [ZOOM] button
         cp skWindow             ; benryves:
         call    z, jumpcursor   ; bring the cursor into the current [WINDOW]
-        cp	skTrace             ;        cp      14h
+        cp      skTrace             ;        cp      14h
         call    z, mm_mode_swap ; toggle minimap mode
-        cp	skYEqu              ;        cp      11h
+        cp      skYEqu              ;        cp      11h
         call    z, setwrap      ; toggle the character wrap
-        cp	sk2nd               ;        cp      21h
+        cp      sk2nd               ;        cp      21h
         call    z, set2nd       ; set numeric
-        cp	skAlpha             ;        cp      31h
+        cp      skAlpha             ;        cp      31h
         call    z, setalph      ; set capital
-        cp	skMode              ;        cp      22h
+        cp      skMode              ;        cp      22h
         call    z, setmode      ; set extra
-        cp	skGraphvar          ;        cp      32h
+        cp      skGraphvar          ;        cp      32h
         call    z, setctrl      ; set ctrl
         
       call    catchup         ; *-* LINK CHECK *+*
@@ -254,22 +254,22 @@ no_directarrow:
         ld      a, d
         jr      nz, no_vtarrows
 
-        cp	skUp                ;        cp      25h
+        cp      skUp                ;        cp      25h
         call    z, send_vt100_up
-        cp	skDown              ;        cp      34h
+        cp      skDown              ;        cp      34h
         call    z, send_vt100_down
-        cp	skLeft              ;        cp      24h
+        cp      skLeft              ;        cp      24h
         call    z, send_vt100_left
-        cp	skRight             ;        cp      26h
+        cp      skRight             ;        cp      26h
         call    z, send_vt100_right
 no_vtarrows:
-	or	a			;        cp      0
+        or      a               ;        cp      0
         jr      z, no_key       ; no key
 
       call    catchup         ; *-* LINK CHECK *+*
         call    keypad2ascii    ; convert the key into ASCII
       call    catchup         ; *-* LINK CHECK *+*
-	or	a			;        cp      0
+        or      a               ;        cp      0
         jr      z, no_key       ; key doesn't have an entry
         push    af
         ld      a, 1
@@ -285,13 +285,13 @@ no_key:
 more_data:
       call    catchup         ; *-* LINK CHECK *+*
         call    recvbyte        ; get a byte from the recv buffer
-		or	a			;       cp      0
+        or      a               ;       cp      0
         jp      z, no_data      ; it's empty
 
       call    catchup         ; *-* LINK CHECK *+*
         ld      b, a
         ld      a, (in_seq)
-		or	a			;        cp      0
+        or      a               ;        cp      0
         ld      a, b
         jp      nz, add2esc     ; continue the current vt100 sequence
         cp      ESC
@@ -320,7 +320,7 @@ add2esc:
         add     hl, bc
         ld      (hl), a         ; add in the new character to the sequence
         call    check_seq       ; see if the sequence has a match
-	or	a				;        cp      0
+        or      a               ;        cp      0
         jp      z, seqoverflow  ; no match or sequence to big?
         cp      2
         call    z, erase_esc    ; perfect match was executed, delete now
@@ -349,7 +349,7 @@ no_data:
         ld      a, 0
         ld      (timer), a      ; zero out the cursor timer
         ld      a, (curstat)
-	or	a			;        cp      0
+        or      a               ;        cp      0
         jr      z, curisoff
         call    cursor_off      ; if on, turn back off
         jr      aftertimer
@@ -563,13 +563,13 @@ kill_lp:
         inc     hl
         pop     bc
         djnz    kill_lp
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ld      (in_seq), a
         ret
 
 erase_esc:
       call    catchup         ; *-* LINK CHECK *+*
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ld      (in_seq), a
         ret
 
@@ -702,10 +702,10 @@ notoffbottom:
 
 mm_mode_swap:
         ld      a, (mm_mode)
-	or	a			;        cp      0
+        or      a           ;        cp      0
         ld      a, 1
         jr      z, mmzero
-	xor	a			;        ld      a, 0
+        xor     a           ;        ld      a, 0
 mmzero:
         ld      (mm_mode), a
         ret
@@ -718,13 +718,13 @@ set2nd:
         jr      z, setshiftOff
         ld      a, 1
         ld      (shift), a
-	xor	a			;        ld      a, 0
+        xor     a           ;        ld      a, 0
         ret
 setshiftOff
       call    catchup         ; *-* LINK CHECK *+*
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ld      (shift), a
-	xor	a		;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ret
 setalph:
       call    catchup         ; *-* LINK CHECK *+*
@@ -733,7 +733,7 @@ setalph:
         jr      z, setshiftOff
         ld      a, 2
         ld      (shift), a
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ret
 setmode:
       call    catchup         ; *-* LINK CHECK *+*
@@ -742,7 +742,7 @@ setmode:
         jr      z, setshiftOff
         ld      a, 3
         ld      (shift), a
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ret
 setctrl:
       call    catchup         ; *-* LINK CHECK *+*
@@ -751,7 +751,7 @@ setctrl:
         jr      z, setshiftOff
         ld      a, 4
         ld      (shift), a
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ret
 
 
@@ -1479,7 +1479,7 @@ fix_boundsx:
         jr      nc, sx_pos
         ret
 sx_neg:
-	xor	a			;       ld      a, 0
+        xor     a           ;       ld      a, 0
         ld      (sx), a
         ret
 sx_pos:
@@ -1510,7 +1510,7 @@ mul:
         push    de
         push    hl
         ld      a, b
-	or	a			;        cp      0
+        or      a               ;        cp      0
         jr      z, mul0
         ld      hl, 0
         ld      a, c
@@ -1563,13 +1563,13 @@ cursor_on:
 
 cursor_off:
         ld      a, (curstat)
-	or	a			;        cp      0
+        or      a               ;        cp      0
         ret     z
       call    catchup         ; *-* LINK CHECK *+*
         call    getxy
         ld      a, (curshad)
         ld      (hl), a
-	xor	a			;        ld      a, 0
+        xor     a               ;        ld      a, 0
         ld      (curstat), a
       call    catchup         ; *-* LINK CHECK *+*
         ret
@@ -1628,9 +1628,9 @@ keypad2ascii:
  ;       ld      a, d
  ;       ld      d, 0
  ;       ld      e, a
-	dec	a
-	ld	e,a
-	ld	d,0
+        dec     a
+        ld      e,a
+        ld      d,0
 
 ;      call    catchup         ; *-* LINK CHECK *+*
 ;        ld      hl, keypad_table
@@ -1645,7 +1645,7 @@ keypad2ascii:
 ;        add     hl, de
 
 ;      call    catchup         ; *-* LINK CHECK *+*
-	ld	hl,keypad_table
+        ld      hl,keypad_table
         ld      a, (shift)
         cp      1
         call    z, keypad_2nd
@@ -1655,25 +1655,25 @@ keypad2ascii:
         call    z, keypad_mode
         cp      4
         call    z, keypad_ctrl
-	add	hl,de
+        add     hl,de
         ld      a, (hl)
       call    catchup         ; *-* LINK CHECK *+*
         ret
 
 keypad_2nd:
-	ld	hl,keypad_table2
-      jp    catchup         ; *-* LINK CHECK *+*
+        ld      hl,keypad_table2
+      jp      catchup         ; *-* LINK CHECK *+*
        
 keypad_alph:
-	ld	hl,keypad_table3
+        ld      hl,keypad_table3
       jp    catchup         ; *-* LINK CHECK *+*
        
 keypad_mode:
-	ld	hl,keypad_table4
+        ld      hl,keypad_table4
       jp    catchup         ; *-* LINK CHECK *+*
        
 keypad_ctrl:
-	ld	hl,keypad_table5
+        ld      hl,keypad_table5
         ld      a, 0
         ld      (shift), a
       jp    catchup         ; *-* LINK CHECK *+*
@@ -1877,42 +1877,42 @@ DONE5:
 ;Input: nothing
 ;Output: graph buffer is copied to the screen
 bufcopy_catchup:
-	push af			; [11] Save AF
-	push bc			; [11] Save BC
-	push hl			; [11] Save HL
-	ld a,$80		; [ 7] Set Cursor to Top Row
-	out ($10),a		; [11]
-	call $000B      ; benryves: delay
-	ld hl,PLOTSSCREEN	; [10] Copy GRAPH_MEM
-	push de			; [11] Save DE
-	ld c,$20		; [ 7] C = Cursor Column Number
-	ld a,c			; [ 4] A = Cursor Column Number
+        push    af              ; [11] Save AF
+        push    bc              ; [11] Save BC
+        push    hl              ; [11] Save HL
+        ld      a, $80          ; [ 7] Set Cursor to Top Row
+        out     ($10), a        ; [11]
+        call    $000B           ; benryves: delay
+        ld      hl, PLOTSSCREEN ; [10] Copy GRAPH_MEM
+        push    de              ; [11] Save DE
+        ld      c, $20          ; [ 7] C = Cursor Column Number
+        ld      a, c            ; [ 4] A = Cursor Column Number
 _CLCD_Loop:
-	ld de,12		; [10] Increment number
-	out ($10),a		; [11] Write Column Number to Port
-    call $000B      ; benryves: delay
-	ld b,$3F		; [ 7] Repeat Loop 63 times
+        ld      de, 12          ; [10] Increment number
+        out     ($10), a        ; [11] Write Column Number to Port
+        call    $000B           ; benryves: delay
+        ld      b, $3F          ; [ 7] Repeat Loop 63 times
 _CLCDClmLoop:
         call    catchup
-	ld a,(hl)		; [ 7] Read data into A
-	add hl,de		; [11] Increment pointer to next row
-	out ($11),a		; [11] Write byte to LCD
-	call $000B      ; benryves: delay
-	djnz _CLCDClmLoop	; [13] Loop [8]
-	ld de,-755		; [10] Get ready to move to next column
-	ld a,(hl)		; [ 7] Read data into A
-	add hl,de		; [11] Update position to top of next column
-	out ($11),a		; [11] Write byte to LCD
-	call $000B      ; benryves: delay
-	inc c			; [ 4] Increment Cursor
-	ld a,c			; [ 4]
-	cp $2D			; [ 7]
-	jr nz,_CLCD_Loop	; [12]/[ 7]
-	pop de			; [10] Get DE back
-	pop hl			; [10] Get HL back
-	pop bc			; [10] Get BC back
-	pop af			; [10] Get AF back
-	ret			; [10]
+        ld      a, (hl)         ; [ 7] Read data into A
+        add     hl, de          ; [11] Increment pointer to next row
+        out     ($11), a        ; [11] Write byte to LCD
+        call    $000B           ; benryves: delay
+        djnz    _CLCDClmLoop    ; [13] Loop [8]
+        ld      de, -755        ; [10] Get ready to move to next column
+        ld      a, (hl)         ; [ 7] Read data into A
+        add     hl, de          ; [11] Update position to top of next column
+        out     ($11), a        ; [11] Write byte to LCD
+        call    $000B           ; benryves: delay
+        inc     c               ; [ 4] Increment Cursor
+        ld      a, c            ; [ 4]
+        cp      $2D             ; [ 7]
+        jr      nz, _CLCD_Loop  ; [12]/[ 7]
+        pop     de              ; [10] Get DE back
+        pop     hl              ; [10] Get HL back
+        pop     bc              ; [10] Get BC back
+        pop     af              ; [10] Get AF back
+        ret                     ; [10]
 
 bufclr_catchup:
         ld      de, 768
@@ -2385,12 +2385,6 @@ over_c:
         ld      a, c
         ret
 
-homeup:
-	push	hl
-	ld	hl,0
-	ld	(currow),hl
-	pop	hl
-	ret
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | ROM Call Defines                                   | Infiniti |
 ;-----------+----------------------------------------------------+----------+
@@ -2419,21 +2413,21 @@ homeup:
 ; Telnet 83 | The 80x25 display                                  | Infiniti |
 ;-----------+----------------------------------------------------+----------+
 keypad_table:
-							;*grr, how annoying, why can't you use a 
-							;decent keypress routine?*
+        ;*grr, how annoying, why can't you use a 
+        ;decent keypress routine?*
 
-	.db	0,0,0,0				;1-4, arrows
-	.db	0,0,0,0				;5-8, unused
-	.db	13,34,"wrmh",0			;9-F, enter, quote, wrmh, clear
-	.db	0					;10, unused
-	.db	"/@vqlg",9				;11-17, negative, theta, vqlh, vars
-	.db	0					;18, unused
-	.db	".zupkfc",27			;19-20, peroid, zupkfc, stat
-	.db	" ytojeb",0				;21-28, space, ytojeb, xt0n
-	.db	0					;29, unused
-	.db	"xsnida",0				;2A-30, xsnida, alpha
-	.db	0,0,0,0,0				;31-35, graph, trace, zoom, window, y=
-	.db	0,0,8					;36-38, 2nd, mode, del
+        .db 0,0,0,0                 ;1-4, arrows
+        .db 0,0,0,0                 ;5-8, unused
+        .db 13,34,"wrmh",0          ;9-F, enter, quote, wrmh, clear
+        .db 0                       ;10, unused
+        .db "/@vqlg",9              ;11-17, negative, theta, vqlh, vars
+        .db 0                       ;18, unused
+        .db ".zupkfc",27            ;19-20, peroid, zupkfc, stat
+        .db " ytojeb",0             ;21-28, space, ytojeb, xt0n
+        .db 0                       ;29, unused
+        .db "xsnida",0              ;2A-30, xsnida, alpha
+        .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
+        .db 0,0,8                   ;36-38, 2nd, mode, del
 
 ;        .db   0,  0,  0,  0,  0        .db   0,  0,  8,  0,  0
 ;        .db   0,  0, 27,  0,  0        .db 'a','b','c',  9,  0
@@ -2441,18 +2435,18 @@ keypad_table:
 ;        .db 'n','o','p','q','r'        .db 's','t','u','v','w'
 ;        .db 'x','y','z','@', 34        .db   0,' ','.','/', 13
 keypad_table2:
-	.db	0,0,0,0				;1-4, arrows
-	.db	0,0,0,0				;5-8, unused
-	.db	13,"+-*/^",0			;9-F, enter, +-*/^, clear
-	.db	0					;10, unused
-	.db	"/","369)",0,9				;11-17, \369), tan, vars
-	.db	0					;18, unused
-	.db	".258(",0,0,27			;19-20, .258(, cos, prog, stat
-	.db	"0147,",0,0,0			;21-28, 0147,, sin, apps, xt0n
-	.db	0					;29,unused
-	.db	"><",0,0,0,0,0			;2A-30, ><, log, square, inverse, math, alpha
-	.db	0,0,0,0,0				;31-35, graph, trace, zoom, window, y=
-	.db	0,0,8					;36-38, 2nd, mode, del
+        .db 0,0,0,0                 ;1-4, arrows
+        .db 0,0,0,0                 ;5-8, unused
+        .db 13,"+-*/^",0            ;9-F, enter, +-*/^, clear
+        .db 0                       ;10, unused
+        .db "/","369)",0,9          ;11-17, \369), tan, vars
+        .db 0                       ;18, unused
+        .db ".258(",0,0,27          ;19-20, .258(, cos, prog, stat
+        .db "0147,",0,0,0           ;21-28, 0147,, sin, apps, xt0n
+        .db 0                       ;29,unused
+        .db "><",0,0,0,0,0          ;2A-30, ><, log, square, inverse, math, alpha
+        .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
+        .db 0,0,8                   ;36-38, 2nd, mode, del
 
 ;        .db   0,  0,  0,  0,  0        .db   0,  0,  8,  0,  0
 ;        .db   0,  0, 27,  0,  0        .db   0,  0,  0,  9,  0
@@ -2460,18 +2454,18 @@ keypad_table2:
 ;        .db   0,'7','8','9','*'        .db '<','4','5','6','-'
 ;        .db '>','1','2','3','+'        .db   0,'0','.','\', 13
 keypad_table3:
-	.db	0,0,0,0				;1-4, arrows
-	.db	0,0,0,0				;5-8, unused
-	.db	13,39,"WRMH",0			;9-F, enter, quote, wrmh, clear
-	.db	0					;10, unused
-	.db	"?@VQLG",9				;11-17, negative, theta, vqlh, vars
-	.db	0					;18, unused
-	.db	":ZUPKFC",27			;19-20, peroid, zupkfc, stat
-	.db	" YTOJEB",0				;21-28, space, ytojeb, xt0n ; benryves: made UPPERCASE
-	.db	0					;29, unused
-	.db	"ZSNIDA",0				;2A-30, xsnida, alpha
-	.db	0,0,0,0,0				;31-35, graph, trace, zoom, window, y=
-	.db	0,0,8					;36-38, 2nd, mode, del
+        .db 0,0,0,0                 ;1-4, arrows
+        .db 0,0,0,0                 ;5-8, unused
+        .db 13,39,"WRMH",0          ;9-F, enter, quote, wrmh, clear
+        .db 0                       ;10, unused
+        .db "?@VQLG",9              ;11-17, negative, theta, vqlh, vars
+        .db 0                       ;18, unused
+        .db ":ZUPKFC",27            ;19-20, peroid, zupkfc, stat
+        .db " YTOJEB",0             ;21-28, space, ytojeb, xt0n ; benryves: made UPPERCASE
+        .db 0                       ;29, unused
+        .db "ZSNIDA",0              ;2A-30, xsnida, alpha
+        .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
+        .db 0,0,8                   ;36-38, 2nd, mode, del
 
 ;        .db   0,  0,  0,  0,  0        .db   0,  0,  8,  0,  0
 ;        .db   0,  0, 27,  0,  0        .db 'A','B','C',  9,  0
@@ -2479,18 +2473,18 @@ keypad_table3:
 ;        .db 'N','O','P','Q','R'        .db 'S','T','U','V','W'
 ;        .db 'X','Y','Z','@', 39        .db   0,' ',':','?', 13
 keypad_table4:
-	.db	0,0,0,0				;1-4, arrows
-	.db	0,0,0,0				;5-8, unused
-	.db	"=~][|_",0			;9-F, enter, quote, wrmh, clear
-	.db	0					;10, unused
-	.db	"?#^(}",0,9				;11-17, negative, theta, vqlh, vars
-	.db	0					;18, unused
-	.db	";@%*{",0,0,27			;19-20, peroid, zupkfc, stat
-	.db	")!$&`",0,0,0			;21-28, space, ytojeb, xt0n
-	.db	0					;29, unused
-	.db	"><",0,0,0,0,0			;2A-30, xsnida, alpha
-	.db	0,0,0,0,0				;31-35, graph, trace, zoom, window, y=
-	.db	0,0,8					;36-38, 2nd, mode, del
+        .db 0,0,0,0                 ;1-4, arrows
+        .db 0,0,0,0                 ;5-8, unused
+        .db "=~][|_",0              ;9-F, enter, quote, wrmh, clear
+        .db 0                       ;10, unused
+        .db "?#^(}",0,9             ;11-17, negative, theta, vqlh, vars
+        .db 0                       ;18, unused
+        .db ";@%*{",0,0,27          ;19-20, peroid, zupkfc, stat
+        .db ")!$&`",0,0,0           ;21-28, space, ytojeb, xt0n
+        .db 0                       ;29, unused
+        .db "><",0,0,0,0,0          ;2A-30, xsnida, alpha
+        .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
+        .db 0,0,8                   ;36-38, 2nd, mode, del
 
 ;        .db   0,  0,  0,  0,  0        .db   0,  0,  8,  0,  0
 ;        .db   0,  0, 27,  0,  0        .db   0,  0,  0,  9,  0
@@ -2498,18 +2492,18 @@ keypad_table4:
 ;        .db   0,'&','*','(','['        .db '<','$','%','^',']'
 ;        .db '>','!','@','#','~'        .db   0,')',';','?','='
 keypad_table5:
-	.db	0,0,0,0				;1-4, arrows
-	.db	0,0,0,0				;5-8, unused
-	.db	"=",29,23,18,13,8,0		;9-F
-	.db	0					;10, unused
-	.db	"?",27,22,17,12,7,7		;11-17
-	.db	0					;18, unused
-	.db	";".26,21,16,11,6,3,27		;19-20
-	.db	")",25,20,15,10,5,2,0		;21-28
-	.db	0					;29, unused
-	.db	24,19,14,9,4,1,0			;2A-30
-	.db	0,0,0,0,0				;31-35, graph, trace, zoom, window, y=
-	.db	0,0,127				;36-38, 2nd, mode, del
+        .db 0,0,0,0                 ;1-4, arrows
+        .db 0,0,0,0                 ;5-8, unused
+        .db "=",29,23,18,13,8,0     ;9-F
+        .db 0                       ;10, unused
+        .db "?",27,22,17,12,7,7     ;11-17
+        .db 0                       ;18, unused
+        .db ";".26,21,16,11,6,3,27  ;19-20
+        .db ")",25,20,15,10,5,2,0   ;21-28
+        .db 0                       ;29, unused
+        .db 24,19,14,9,4,1,0        ;2A-30
+        .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
+        .db 0,0,127                 ;36-38, 2nd, mode, del
 
 ;        .db   0,  0,  0,  0,  0        .db   0,  0,127,  0,  0
 ;        .db   0,  0, 27,  0,  0        .db   1,  2,  3,  7,  0
