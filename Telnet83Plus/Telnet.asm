@@ -1974,9 +1974,9 @@ vtclearlp:
         ld      a, b
         cp      0
         jr      nz, vtclearlp
-        ld      a, 0
+        xor     a
         ld      (curx), a
-        ld      (cury), a
+        ld      (pcury), a ; benryves: was (cury)
         ret
 
 vt100erasebegcursor:
