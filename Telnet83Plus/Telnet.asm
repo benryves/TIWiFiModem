@@ -107,9 +107,25 @@ start:
     ld      bc, buffers_s - 1
     ldir
     
+    ; clear data
+    ld      hl, data
+    ld      de, data + 1
+    ld      bc, data_s - 1
+    ld      (hl), 0
+    ldir
+    
+    ; set certain non-zero variables
+    ld      a, 80
+    ld      (wrap), a
+    ld      a, 23
+    ld      (scr_bot), a
+    ld      a, 1
+    ld      (mm_mode), a
+    
     ; default sign-on message
     ld      hl, signon
     ld      de, term
+    ld      ix, pcury
 
 signon_line_loop:
 
@@ -135,6 +151,8 @@ signon_char_loop:
     ld      bc, 80
     add     hl, bc
     ex      de, hl
+    
+    inc     (ix)
     
     jr      signon_line_loop
 
@@ -497,7 +515,6 @@ mmzero:
         ret
 
 
-shift   .db     0
 set2nd:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (shift)
@@ -541,7 +558,7 @@ setctrl:
 	xor	a			;        ld      a, 0
         ret
 
-wrap    .db     80
+
 setwrap:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (wrap)
@@ -787,12 +804,6 @@ buildlp:
         pop     bc
         djnz    buildlp
         ret
-
-rtmp    .db     0,0,0,0,0,0,0,0
-rinv    .db     0
-
-rptr    .dw     0
-rtype   .db     0
 
 render_text:
       call    catchup         ; *-* LINK CHECK *+*
@@ -1724,7 +1735,6 @@ bufclrlp:
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | VT100 functions                                    | Infiniti |
 ;-----------+----------------------------------------------------+----------+
-check_partial   .db     0
 check_seq:
         ld      ix, vt100table
 check_mainlp:
@@ -2440,42 +2450,59 @@ mmg4
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Data                                               | Infiniti |
 ;-----------+----------------------------------------------------+----------+
-curx    .db     0       ; - Cursor position (in characters)
-pcury    .db     8       ; /
-sx      .db     0       ; - Screen position (in characters)
-sy      .db     0       ; /
 
-scr_top .db     0       ; top of scrolling region
-scr_bot .db     23      ; bottom of scrolling region
+data        = saveSScreen
 
-timer   .db     0       ; Timer used for flashing cursor
-curstat .db     0       ; Current status of cursor
-curshad .db     0       ; Character that's behind the cursor
-curattr .db     0       ; cursor attributes (bold, inverse, etc)
+shift       = data + 0          ; .db     0
+wrap        = shift + 1         ; .db     80
 
-sendstat .db    0       ; flag to force statusbar to display send status
-                        ; upon keypress even if it was sent so fast that
-                        ; there's no data pending
+rtmp        = wrap + 1          ; .db     0,0,0,0,0,0,0,0
+rinv        = rtmp + 8          ; .db     0
 
-panned  .db     0       ; did you pan the screen during the previous loop?
-mm_mode .db     1       ; minimap mode on?
+rptr        = rinv + 1          ; .dw     0
+rtype       = rptr + 2          ; .db     0
 
-n       .dw     0       ; temp var
-n2      .dw     0       ; temp var
+check_partial = rtype + 1       ; .db     0
+curx        = check_partial + 1 ; .db     0       ; - Cursor position (in characters)
+pcury       = curx + 1          ; .db     8       ; /
+sx          = pcury + 1         ; .db     0       ; - Screen position (in characters)
+sy          = sx + 1            ; .db     0       ; /
+
+scr_top     = sy + 1            ; .db     0       ; top of scrolling region
+scr_bot     = scr_top + 1       ; .db     23      ; bottom of scrolling region
+
+timer       = scr_bot  + 1      ; .db     0       ; Timer used for flashing cursor
+curstat     = timer + 1         ; .db     0       ; Current status of cursor
+curshad     = curstat + 1       ; .db     0       ; Character that's behind the cursor
+curattr     = curshad + 1       ; .db     0       ; cursor attributes (bold, inverse, etc)
+
+sendstat    = curattr + 1       ; .db    0  ; flag to force statusbar to display send status
+                                ; upon keypress even if it was sent so fast that
+                                ; there's no data pending
+
+panned      =  sendstat + 1     ; .db     0       ; did you pan the screen during the previous loop?
+mm_mode     = panned + 1        ; .db     1       ; minimap mode on?
+
+n           = mm_mode + 1       ; .dw     0       ; temp var
+n2          = n + 2             ; .dw     0       ; temp var
+
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Buffers                                            | Infiniti |
 ;-----------+----------------------------------------------------+----------+
-#define BUFSIZE 32
+; #define BUFSIZE 32
 
 ; buffer for vt100 sequences
 
-seqbuf  .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-in_seq  .db     0
-scurx   .db     0
-scury   .db     0
+seqbuf      = n2 + 2            ; .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+in_seq      = seqbuf + 20       ; .db     0
+;scurx   .db     0
+;scury   .db     0
 
 ; backup of register SP
 ;spbackup .dw    0
+
+data_end    = in_seq + 1
+data_s      = data_end - data
 
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Code from Zterm for the TI-85 (Zshell)             | Infiniti |
