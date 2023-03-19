@@ -56,7 +56,7 @@ PORT    .equ    0
 
 
   ret
-  .db	1
+  .db	3
 button:
 	.db	%00000000,%00000000
 	.db	%00000000,%00000000
@@ -73,6 +73,7 @@ button:
 	.db	%00101011,%10010000
 	.db	%00000000,%00000000
 	.db	%00000000,%00000000
+    .dw exit
 
 ;desc:
 	.db     "Telnet83+ V1.6 by Infiniti",0
@@ -84,6 +85,62 @@ button:
 ; Telnet 83 | Program                                            | Infiniti |
 ;-----------+----------------------------------------------------+----------+
 start:
+
+    ; benryves: allocate buffers by inserting memory into the end of the program
+    
+    ; first check for enough free memory
+    ld      hl, buffers_s
+    bcall(_EnoughMem)
+    jp     c, quittoshell
+    
+    ; if there is, insert it into the variable
+    ex      de, hl
+    ld      de, buffers
+    bcall(_InsertMem)
+    
+    ; clear buffers
+    ld      a, ' '
+    ld      (de), a
+    push    de
+    pop     hl
+    inc     de
+    ld      bc, buffers_s - 1
+    ldir
+    
+    ; default sign-on message
+    ld      hl, signon
+    ld      de, term
+
+signon_line_loop:
+
+    ld      a, (hl)
+    inc     hl
+    or      a
+    jr      z, signon_end
+    
+    push    de
+
+signon_char_loop:
+    ld      (de), a
+    inc     de
+    ld      a, (hl)
+    inc     hl
+    or      a
+    jr      nz, signon_char_loop
+    
+    pop     de
+    
+    ; advance to next line
+    ex      de, hl
+    ld      bc, 80
+    add     hl, bc
+    ex      de, hl
+    
+    jr      signon_line_loop
+
+
+signon_end:
+
 ;        call    RINDOFF         ; Turn off runindicator (not needed)
 	bcall(_grbufclr)		;        call    BUFCLR          ; Clear the graphbuf
 	bcall(_grbufcpy)		;        call    BUFCOPY         ; Copy the graphbuf to the LCD
@@ -280,7 +337,12 @@ aftertimer:
       call    catchup         ; *-* LINK CHECK *+*
         jp      mainloop        ; loop back to the top!
 
-exit = quittoshell
+exit:
+        ; benryves: free dynamically-allocated buffers
+        ld      hl, buffers
+        ld      de, buffers_s
+        bcall(_DelMem)
+        jp      quittoshell
 
 ;        ld      sp, (spbackup)
 ;        call    CLRTSHD         ; Clear textshadow
@@ -2252,144 +2314,17 @@ keypad_table5:
 
 _blackstamp     .db 255,255,255,255,255,255,255,255
 
-term
-        .db "TELNET 83 v1.6          "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "by Justin Karneges, 1998"
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "[CLEAR] = Quit          "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "[2nd]   = Numeric       "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "[Alpha] = Capital       "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "[Mode]  = Extra         "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "[X]     = Ctrl          "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-        .db "                        "
-         .db "                        "
-         .db "                        "
-         .db "        "
-
-
-fonttable
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .dw     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
+signon
+        .db "TELNET 83 v1.6", 0
+        .db "by Justin Karneges, 1998", 0
+        .db " ", 0
+        .db "[Graph] = Quit", 0
+        .db "[2nd]   = Numeric", 0
+        .db "[Alpha] = Capital", 0
+        .db "[Mode]  = Extra", 0
+        .db "[X]     = Ctrl", 0
+        .db 0
+        
 erase
         .db 11110000b
         .db 11110000b
@@ -2716,6 +2651,23 @@ vt100table:
     .db $01,'>'
     .dw vt100timefinish
     .db $FF
+
+;-----------+----------------------------------------------------+----------+
+; Telnet 83 | Dynamic memory allocated at the end of the program | benryves |
+;-----------+----------------------------------------------------+----------+
+
+buffers     = $
+
+term        = buffers + 0
+term_s      = 80 * 25
+
+recvbuf     = term + term_s
+recvbuf_s   = MAXRECV
+
+fonttable   = recvbuf + recvbuf_s
+fonttable_s = 256
+
+buffers_s   = term_s + recvbuf_s + fonttable_s
 
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Well, that's all folks!                            | Infiniti |

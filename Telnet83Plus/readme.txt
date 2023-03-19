@@ -20,6 +20,8 @@ benryves@benryves.com
 - fixed BEJOTY keys producing lowercase letters when in capital mode.
 - added overflow check to the receive buffer, large transfers are no longer
   truncated.
+- terminal and receive buffers are dynamically allocated, greatly reducing the
+  size of the program.
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
