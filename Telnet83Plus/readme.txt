@@ -24,6 +24,7 @@ benryves@benryves.com
 - terminal and receive buffers are dynamically allocated, greatly reducing the
   size of the program.
 - previous session state is stored in an external appvar named TELNET.
+- pressing [WINDOW] scrolls the window to bring the cursor into view.
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
@@ -136,6 +137,7 @@ DEL     = BackSpace
 STAT    = ESC
 VARS    = TAB
 ZOOM    = jump the viewport to the far left
+WINDOW  = scroll the viewport to bring the cursor into view
 TRACE   = toggle minimap mode
 Y=      = Word Wrap toggle (useful when using irc -d)
 

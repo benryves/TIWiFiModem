@@ -224,27 +224,29 @@ no_directarrow:
         ; --- end ---
 
         ; --- check keypad the normal way and respond accordingly ---
-      call    catchup         ; *-* LINK CHECK *+*
-	bcall(_getcsc)		;        call    getch
-	cp	$31			;        cp      15h
+        call    catchup         ; *-* LINK CHECK *+*
+        bcall(_getcsc)          ;        call    getch
+        cp	skGraph             ;        cp      15h
         jp      z, exit         ; quit
-	cp	$F			;        cp      45h
+        cp	skClear             ;        cp      45h
         call    z, vt100entirescreen
-	cp	$33			;        cp      13h
+        cp	skZoom              ;        cp      13h
         call    z, jumphome     ; zoom to the left edge [ZOOM] button
-	cp	$32			;        cp      14h
+        cp skWindow             ; benryves:
+        call    z, jumpcursor   ; bring the cursor into the current [WINDOW]
+        cp	skTrace             ;        cp      14h
         call    z, mm_mode_swap ; toggle minimap mode
-	cp	$35			;        cp      11h
+        cp	skYEqu              ;        cp      11h
         call    z, setwrap      ; toggle the character wrap
-	cp	$36			;        cp      21h
+        cp	sk2nd               ;        cp      21h
         call    z, set2nd       ; set numeric
-	cp	$30			;        cp      31h
+        cp	skAlpha             ;        cp      31h
         call    z, setalph      ; set capital
-	cp	$37			;        cp      22h
+        cp	skMode              ;        cp      22h
         call    z, setmode      ; set extra
-	cp	$28			;        cp      32h
+        cp	skGraphvar          ;        cp      32h
         call    z, setctrl      ; set ctrl
-
+        
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
         ld      a, (shift)
@@ -252,13 +254,13 @@ no_directarrow:
         ld      a, d
         jr      nz, no_vtarrows
 
-	cp	$04			;        cp      25h
+        cp	skUp                ;        cp      25h
         call    z, send_vt100_up
-	cp	$01			;        cp      34h
+        cp	skDown              ;        cp      34h
         call    z, send_vt100_down
-	cp	$02			;        cp      24h
+        cp	skLeft              ;        cp      24h
         call    z, send_vt100_left
-	cp	$03			;        cp      26h
+        cp	skRight             ;        cp      26h
         call    z, send_vt100_right
 no_vtarrows:
 	or	a			;        cp      0
@@ -622,8 +624,80 @@ scroll_down:
         ret
 
 jumphome:
-	xor	a			;        ld      a, 0
+        ld      a, (sx)
+        or      a
+        ret     z
+        
+        xor     a
         ld      (sx), a
+        
+        ld      a, 1
+        ld      (panned), a
+        ret
+
+; benryves: scroll the window to bring the cursor into view
+jumpcursor:
+        ld      a, (sx)
+        ld      b, a
+
+        ld      a, (curx)
+        cp      80
+        jr      nz, curx_not_80
+        xor     a
+curx_not_80:
+        
+        sub     b
+        jr      nc, notoffleft
+        
+        add     a, b
+        ld      (sx), a
+        
+        ld      a, 1
+        ld      (panned), a
+        
+        jr      notoffright
+        
+notoffleft:
+        cp      24
+        jr      c, notoffright
+        
+        add     a, b
+        sub     23
+        ld      (sx), a
+
+        ld      a, 1
+        ld      (panned), a
+        
+notoffright:
+
+        ld      a, (sy)
+        ld      b, a
+
+        ld      a, (pcury)        
+        sub     b
+        jr      nc, notofftop
+        
+        add     a, b
+        ld      (sy), a
+        
+        ld      a, 1
+        ld      (panned), a
+        
+        jr      notoffbottom
+        
+notofftop:
+        cp      10
+        jr      c, notoffbottom
+        
+        add     a, b
+        sub     9
+        ld      (sy), a
+
+        ld      a, 1
+        ld      (panned), a
+
+notoffbottom:
+        xor     a
         ret
 
 mm_mode_swap:
