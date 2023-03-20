@@ -1261,97 +1261,84 @@ swap_zero:
 
 render_stat:
       call    catchup         ; *-* LINK CHECK *+*
-        ld      a, 0
-        ld      e, 56
+        ld      e, 0
         ld      hl, statusleft
-        call    DRWSPR
+        call    drawstatus
 
-        ld      a, 88
-        ld      e, 56
+        ld      e, 11
         ld      hl, statusright
-        call    DRWSPR
+        call    drawstatus
+        
+        ; top edge of status bar
+        ld      hl, GRAPH_MEM + (60 * 12)
+        ld      de, GRAPH_MEM + (60 * 12) + 1
+        ld      (hl), $FF
+        ld      bc, 11
+        ldir
+        
+        ; bottom edge of status bar
+        ld      hl, GRAPH_MEM + (63 * 12)
+        ld      de, GRAPH_MEM + (63 * 12) + 1
+        ld      (hl), $FF
+        ld      bc, 11
+        ldir
 
-        ld      b, 10
-        ld      a, 8
-statlp:
-        push    bc
-        push    af
-        ld      e, 56
-        ld      hl, statusbar
-        call    DRWSPR
-        pop     af
-        add     a, 8
-        pop     bc
-        djnz    statlp
-
+        ; shift state
         ld      a, (shift)
-        cp      1
-        jr      nz, statnext1
-        ld      a, 0
-        ld      e, 56
+        or      a
+        jr      z, stat_no_shift
+        
         ld      hl, statusshade
-        call    DRWSPR
-statnext1:
+        dec     a
+        jr      z, stat_draw_shift
+        
+        ld      de, 2
+        add     hl, de
+        dec     a
+        jr      z, stat_draw_shift
+        
+        add     hl, de
+        dec     a
+        jr      z, stat_draw_shift
+        
+        add     hl, de
+        dec     a
+        jr      nz, stat_no_shift
 
-        ld      a, (shift)
-        cp      2
-        jr      nz, statnext2
-        ld      a, 0
-        ld      e, 56
-        ld      hl, statusfill
-        call    DRWSPR
-statnext2:
-
-        ld      a, (shift)
-        cp      3
-        jr      nz, statnext2_1
-        ld      a, 0
-        ld      e, 56
-        ld      hl, statusjail
-        call    DRWSPR
-statnext2_1:
-
-        ld      a, (shift)
-        cp      4
-        jr      nz, statnext2_2
-        ld      a, 0
-        ld      e, 56
-        ld      hl, statusctrl
-        call    DRWSPR
-statnext2_2:
-
-statnext3:
-
+stat_draw_shift:
+    
+        ld      e, 0
+        call    drawstatus
+        
+stat_no_shift:
+        
         ld      a, (wrap)
         cp      24
         jr      nz, statnext4
-        ld      a, 8
-        ld      e, 56
+        ld      e, 1
         ld      hl, statusfill
-        call    DRWSPR
+        call    drawstatus
 statnext4:
 
         call    check_recv
-        cp      0
+        or      a
         jr      z, statnext5
-        ld      a, 88
-        ld      e, 56
+        ld      e, 11
         ld      hl, statusfill
-        call    DRWSPR
+        call    drawstatus
 statnext5:
 
         ld      a, (sendstat)
         cp      1
         jr      z, statnext6_1
         call    check_send
-        cp      0
+        or      a
         jr      z, statnext6_2
 statnext6_1:
 
-        ld      a, 80
-        ld      e, 56
+        ld      e, 10
         ld      hl, statusfill
-        call    DRWSPR
+        call    drawstatus
         ld      a, 0
         ld      (sendstat), a
 statnext6_2:
@@ -1360,13 +1347,12 @@ statnext6_2:
         or      a
         jr      z, statnext7
         dec     a                   ; benryves: now shows shaded for mode 1, solid for mode 3
-        ld      a, 16
-        ld      e, 56
+        ld      e, 2
         ld      hl, statusshade
         jr      z, mm_shaded
         ld      hl, statusfill
 mm_shaded:
-        call    DRWSPR
+        call    drawstatus
 statnext7:
 
       call    catchup         ; *-* LINK CHECK *+*
@@ -1717,100 +1703,31 @@ keypad_ctrl:
       jp    catchup         ; *-* LINK CHECK *+*
         
 
-;����������������������������������������������������������������������������Ŀ
-;������ Z80 �����۳   PROCEDURES   ���������������������۳ movax ������������۳
-;������������������������������������������������������������������������������
+; benryves: simplified status bar drawing code:
+; hl -> sprite, e = column.
+drawstatus:
 
-;�������������� DRWSPR ��������������������������������������������������������
-;����������������������������������������������������������������������������Ŀ
-;� Draw 8x8 sprite � a=x, e=y, hl=sprite address                              �
-;������������������������������������������������������������������������������
-DRWSPR:
-
-        push    ix              ; ix gets trashed
         push    hl              ; Save sprite address
 
-;����   Calculate the address in graphbuf   ����
-
           call    catchup
 
-        ld      hl,0            ; Do y*12
-        ld      d,0
-        add     hl,de
-        add     hl,de
-        add     hl,de
-        add     hl,hl
-        add     hl,hl
+        ld      hl, GRAPH_MEM + (61 * 12)
+        ld      d, 0
+        add     hl, de
 
-        ld      d,0             ; Do x/8
-        ld      e,a
-        srl     e
-        srl     e
-        srl     e
-        add     hl,de
-
-        ld      de,GRAPH_MEM
-        add     hl,de           ; Add address to graphbuf
-
-        ld      b,00000111b     ; Get the remainder of x/8
-        and     b
-        or a               ; Is this sprite aligned to 8*n,y?
-        jr      z,ALIGN
-
-
-;����   Non aligned sprite blit starts here   ����
-
-        pop     ix              ; ix->sprite
-        ld      d,a             ; d=how many bits to shift each line
-
-        ld      e,8             ; Line loop
-LILOP:  ld      b,(ix+0)        ; Get sprite data
-          call    catchup
-        ld      c,0             ; Shift loop
-        push    de
-SHLOP:  srl     b
-          call    catchup
-        rr      c
-        dec     d
-        jr      nz,SHLOP
-        pop     de
-
-        ld      a,b             ; Write line to graphbuf
-        or      (hl)
-        ld      (hl),a
-        inc     hl
-        ld      a,c
-        or      (hl)
-        ld      (hl),a
-
-        ld      bc,11           ; Calculate next line address
-        add     hl,bc
-        inc     ix              ; Inc spritepointer
-
-        dec     e
-        jr      nz,LILOP        ; Next line
-
-        jr      DONE1
-
-
-;����   Aligned sprite blit starts here   ����
-
-ALIGN:                          ; Blit an aligned sprite to graphbuf
         pop     de              ; de->sprite
-        ld      b,8
-ALOP1:  ld      a,(de)
+        ld      b, 2
+ALOP1:  ld      a, (de)
           call    catchup
         or      (hl)            ; xor=erase/blit
         ld      (hl),a
         inc     de
         push    bc
-        ld      bc,12
-        add     hl,bc
+        ld      bc, 12
+        add     hl, bc
         pop     bc
         djnz    ALOP1
 
-DONE1:
-        pop     ix              ; restore ix
         ret
 ;�������������� DRWSPR ��������������������������������������������������������
 
@@ -2574,69 +2491,26 @@ erase
         .db 00000000b
 
 statusleft
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
         .db 10000000b
         .db 10000000b
-        .db 11111111b
 statusbar
         .db 00000000b
         .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
-statusjail
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
-        .db 10101010b
-        .db 10101010b
-        .db 11111111b
-statusctrl
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
-        .db 10010100b
-        .db 10100010b
-        .db 11111111b
 statusshade
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
         .db 10101011b
         .db 11010101b
-        .db 11111111b
 statusfill
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
         .db 11111111b
         .db 11111111b
-        .db 11111111b
-        .db 11111111b
+statusjail
+        .db 10101010b
+        .db 10101010b
+statusctrl
+        .db 10010100b
+        .db 10100010b
 statusright
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 00000000b
-        .db 11111111b
         .db 00000001b
         .db 00000001b
-        .db 11111111b
-
 
 mmg1
         .db 11111111b
