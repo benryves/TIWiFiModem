@@ -13,7 +13,7 @@ This class inherits from the Arduino's `Stream` class and so acts as a drop-in r
 As this modem is designed to be used with a small pocket calculator I decided to use an ESP-01 module to keep the modem small too.
 The following circuit diagram shows how the pin connections should be made:
 
-![TIWiFi Modem circuit diagram](TIWiFiModem-Circuit.png)
+![TIWiFi Modem circuit diagram](TIWiFiModem/images/ESP-01-circuit.png)
 
 The firmware can be found in the `TIWiFiModem` directory - open `TIWiFiModem.ino` in the Arduino IDE and it can be flashed to the ESP-01 using the "Generic ESP8266 Module" board.
 If you have not previously set up the Arduino IDE for use with the ESP8266 then please see the [_ESP8266 core for Arduino_ documentation](https://github.com/esp8266/Arduino#installing-with-boards-manager) for instructions on how to do so.
@@ -24,7 +24,7 @@ If you run into any issues relating to missing libraries when building the proje
 Once you have built the modem you will need to have some software on your calculator to communicate with it.
 For the TI-83 Plus series I recommend using [Telnet 83 Plus](https://www.ticalc.org/archives/files/fileinfo/141/14141.html) by Justin Karneges and ported to the TI-83 Plus by Dan Englender.
 Unfortunately the program doesn't run well on newer calculators with slower display drivers that can't keep up with how fast the program updates the display, so I have included an updated version of [Telnet 83 Plus](/Telnet83Plus) in this project which includes a few bug fixes and new features.
-Please see that program's [readme.txt](/Telnet83Plus/readme.txt) for further information.
+Please see that program's [readme.txt](Telnet83Plus/readme.txt) for further information.
 
 ## Getting Started
 
