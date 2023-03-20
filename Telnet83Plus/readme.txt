@@ -31,6 +31,8 @@ benryves@benryves.com
   status icon).
 - local echo can be toggled with [ON]+[Y=] or enabled/disabled with VT102
   escape sequences.
+- character attributes are combined (e.g. setting inverse text then setting
+  underlined text no longer clears the previous inverted text).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

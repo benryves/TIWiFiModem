@@ -848,12 +848,9 @@ putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
         ld      a, (curattr)
-        cp      INVERSE
-        jr      nz, putchar_normal
-        set     7, d
-putchar_normal:
-        ld      a, d
-
+        and     %10000000       ; benryves: treat curattr as bitmask
+        or      d
+        
       call    catchup         ; *-* LINK CHECK *+*
 
         push    af
@@ -2139,11 +2136,8 @@ vt100eraseendline:
 
         ld      d, 32
         ld      a, (curattr)
-        cp      INVERSE
-        jr      nz, vteel_1
-        set     7, d
-vteel_1:
-        ld      a, d
+        and     %10000000
+        or      d           ; benryves: treat curattr as bitmask
 vteel_lp:
         ld      (hl), a
         inc     hl
@@ -2155,35 +2149,45 @@ vt100erasecursor:
         ret
 
 vt100cursorstyle0:
-        ld      a, 0
+        xor     a
         ld      (curattr), a
         ret
 vt100cursorstyle1:
-        call    getparam
-        ld      (curattr), a
-        ret
+        ld      b, 1
+        jr      vt100applycursorstyles
 vt100cursorstyle2:
-        call    getparam
-        inc     hl
-        call    getparam
-        ld      (curattr), a
-        ret
+        ld      b, 2
+        jr      vt100applycursorstyles
 vt100cursorstyle3:
-        call    getparam
+        ld      b, 3
+        jr      vt100applycursorstyles
+vt100cursorstyle4:
+        ld      b, 4
+        ; jr      vt100applycursorstyles ; fall-through
+
+; benryves: support VT100 cursor style bitmasks
+vt100applycursorstyles:
+        push    bc
+        call    getparam                ; param in both A and B
+        call    vt100applycursorstyle
         inc     hl
-        call    getparam
-        inc     hl
-        call    getparam
+        pop     bc
+        djnz    vt100applycursorstyles
+        ret
+        
+vt100applycursorstyle:
+        or      a
+        jr      nz, vt100combinecursorstyle
         ld      (curattr), a
         ret
-vt100cursorstyle4:
-        call    getparam
-        inc     hl
-        call    getparam
-        inc     hl
-        call    getparam
-        inc     hl
-        call    getparam
+vt100combinecursorstyle:
+        ld      a, 1
+vt100cursorstylebits:
+        add     a, a
+        djnz    vt100cursorstylebits
+        ld      b, a
+        ld      a, (curattr)
+        or      b
         ld      (curattr), a
         ret
 
