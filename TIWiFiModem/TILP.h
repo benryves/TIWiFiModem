@@ -33,6 +33,9 @@ class TILP : public Stream {
     bool waitReady();
     bool sendRaw(uint8_t value);
     bool getRaw(uint8_t *value);
+
+    void ledOn();
+    void ledOff();
     
     bool update();
 

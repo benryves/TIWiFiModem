@@ -49,10 +49,24 @@ bool TILP::waitReady() {
   return true;
 }
 
+void TILP::ledOn() {
+  if (LED_BUILTIN != this->pinD0 && LED_BUILTIN != this->pinD1) {
+    pinMode(LED_BUILTIN, OUTPUT);
+  }
+}
+
+void TILP::ledOff() {
+  if (LED_BUILTIN != this->pinD0 && LED_BUILTIN != this->pinD1) {
+    pinMode(LED_BUILTIN, INPUT);
+  }
+}
+
 bool TILP::sendRaw(uint8_t value) {
 
   if (!this->waitReady()) return false;
   
+  this->ledOn();
+
   for (int bit = 0; bit < 8; ++bit) {
     
     int timeout = TILP::TIMEOUT_BIT;
@@ -104,19 +118,27 @@ bool TILP::sendRaw(uint8_t value) {
     timeout = TILP::TIMEOUT_BIT;
         
   }
+
+  this->ledOff();
+
   return true;
 
 timeout:
   // leave bus idling high before bailing out
   pinMode(this->pinD0, INPUT_PULLUP);
   pinMode(this->pinD1, INPUT_PULLUP);
+
+  this->ledOff();
+
   return false;
 }
 
 bool TILP::getRaw(uint8_t *value) {
 
   int timeout = TILP::TIMEOUT_INITIAL;
-  
+
+  this->ledOn();
+
   for (int bit = 0; bit < 8; ) {
     if (!digitalRead(this->pinD0)) {
       
@@ -172,6 +194,8 @@ bool TILP::getRaw(uint8_t *value) {
       
   }
   
+  this->ledOff();
+
   // return but only mark as successful if the bus has returned to a ready state
   return this->waitReady();
 
@@ -179,6 +203,9 @@ timeout:
   // leave bus idling high before bailing out
   pinMode(this->pinD0, INPUT_PULLUP);
   pinMode(this->pinD1, INPUT_PULLUP);
+  
+  this->ledOff();
+  
   return false;  
 }
 
