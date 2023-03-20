@@ -11,13 +11,37 @@ As the TI graphical calculator lacks such a port I have written a `TILP` class t
 This class inherits from the Arduino's `Stream` class and so acts as a drop-in replacement for the `Serial` class.
 
 As this modem is designed to be used with a small pocket calculator I decided to use an ESP-01 module to keep the modem small too.
-The following circuit diagram shows how the pin connections should be made:
 
-![TIWiFi Modem circuit diagram](TIWiFiModem/images/ESP-01-circuit.png)
+It is compatible with both the ESP-01 and ESP-01S modules, which share a common pinout:
 
-The firmware can be found in the `TIWiFiModem` directory - open `TIWiFiModem.ino` in the Arduino IDE and it can be flashed to the ESP-01 using the "Generic ESP8266 Module" board.
+![ESP-01 and ESP-01S pinout](TIWiFiModem/images/ESP-01-pinout.png)
+
+The firmware can be found in the `TIWiFiModem` directory - open `TIWiFiModem.ino` in the Arduino IDE.
+Under Tools&rarr;Board select esp8266&rarr;Generic ESP8266 Module then refer to more specific instructions for the two modules below.
+
 If you have not previously set up the Arduino IDE for use with the ESP8266 then please see the [_ESP8266 core for Arduino_ documentation](https://github.com/esp8266/Arduino#installing-with-boards-manager) for instructions on how to do so.
 If you run into any issues relating to missing libraries when building the project then use the Arduino IDE's Library Manager to search for and install them.
+
+### ESP-01
+
+The following circuit diagram shows how the pin connections should be made to the ESP-01:
+
+![TIWiFi Modem circuit diagram for ESP-01](TIWiFiModem/images/ESP-01-circuit.png)
+
+Pull-up resistors are required on `GPIO0`, `GPIO2`, `CH_PD` and `RST` for the module to boot correctly. The ESP-01 already includes a 12K pull-up resistor on `RST`, but the other three pins need to be pulled up as shown.
+
+Set Tools&rarr;Builtin Led to "1".
+
+### ESP-01S
+
+The following circuit diagram shows how the pin connections should be made to the ESP-01S:
+
+![TIWiFi Modem circuit diagram for ESP-02](TIWiFiModem/images/ESP-01S-circuit.png)
+
+
+Pull-up resistors are required on `GPIO0`, `GPIO2`, `CH_PD` and `RST` for the module to boot correctly. The ESP-01S includes a 12K pull-up resistor on `GPIO0`, `CH_PD` and `RST`, so you only need to provide one for `GPIO2`.
+
+Set Tools&rarr;Builtin Led to "2".
 
 ## Terminal Software
 
