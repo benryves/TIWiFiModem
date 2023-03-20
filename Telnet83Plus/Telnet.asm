@@ -2244,14 +2244,6 @@ getparam2lp:
       call    catchup         ; *-* LINK CHECK *+*
         ret
 
-under1:
-        jr      c, under1fix
-        jr      z, under1fix
-        ret
-under1fix:
-        ld      a, 1
-        ret
-
 under0:
         ret     nc
         ld      a, 0
