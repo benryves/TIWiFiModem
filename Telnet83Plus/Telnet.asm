@@ -2382,16 +2382,6 @@ signon
         .db "[X]     = Ctrl", 0
         .db 0
         
-erase
-        .db 11110000b
-        .db 11110000b
-        .db 11110000b
-        .db 11110000b
-        .db 11110000b
-        .db 11110000b
-        .db 00000000b
-        .db 00000000b
-
 statusleft
         .db 10000000b
         .db 10000000b
