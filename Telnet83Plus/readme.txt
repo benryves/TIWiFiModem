@@ -24,7 +24,11 @@ benryves@benryves.com
 - terminal and receive buffers are dynamically allocated, greatly reducing the
   size of the program.
 - previous session state is stored in an external appvar named TELNET.
-- pressing [WINDOW] scrolls the window to bring the cursor into view.
+- pressing [WINDOW] enables an auto-scroll mode which will keep the cursor in
+  view until the screen is scrolled manually with the arrow keys.
+- the minimap can be set to only appear when the view is scrolled manually
+  (shaded status icon) or also when the screen scrolls automatically (filled
+  status icon).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

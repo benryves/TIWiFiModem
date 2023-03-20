@@ -125,6 +125,7 @@ start:
         ld      (scr_bot), a
         ld      a, 1
         ld      (mm_mode), a
+        ld      (autoscroll), a
         
         ; default sign-on message
         ld      hl, signon
@@ -185,15 +186,12 @@ mainloop:
         call    render_stat     ; draw the status bar at the bottom
 
         ld      a, (panned)
-        cp      1
-        jr      nz, no_minimap
+        ld      b, a
         ld      a, (mm_mode)
-        cp      1
-        jr      nz, no_minimap
-        call    render_minimap
-no_minimap:
+        and     b
+        call    nz, render_minimap
 
-        xor     a               ;        ld      a, 0
+        xor     a
         ld      (panned), a
 
         call    zap             ; copy to LCD
@@ -226,25 +224,25 @@ no_directarrow:
         ; --- check keypad the normal way and respond accordingly ---
         call    catchup         ; *-* LINK CHECK *+*
         bcall(_getcsc)          ;        call    getch
-        cp      skGraph             ;        cp      15h
+        cp      skGraph         ;        cp      15h
         jp      z, exit         ; quit
-        cp      skClear             ;        cp      45h
+        cp      skClear         ;        cp      45h
         call    z, vt100entirescreen
-        cp      skZoom              ;        cp      13h
+        cp      skZoom          ;        cp      13h
         call    z, jumphome     ; zoom to the left edge [ZOOM] button
-        cp skWindow             ; benryves:
+        cp      skWindow        ; benryves:
         call    z, jumpcursor   ; bring the cursor into the current [WINDOW]
-        cp      skTrace             ;        cp      14h
+        cp      skTrace         ;        cp      14h
         call    z, mm_mode_swap ; toggle minimap mode
-        cp      skYEqu              ;        cp      11h
+        cp      skYEqu          ;        cp      11h
         call    z, setwrap      ; toggle the character wrap
-        cp      sk2nd               ;        cp      21h
+        cp      sk2nd           ;        cp      21h
         call    z, set2nd       ; set numeric
-        cp      skAlpha             ;        cp      31h
+        cp      skAlpha         ;        cp      31h
         call    z, setalph      ; set capital
-        cp      skMode              ;        cp      22h
+        cp      skMode          ;        cp      22h
         call    z, setmode      ; set extra
-        cp      skGraphvar          ;        cp      32h
+        cp      skGraphvar      ;        cp      32h
         call    z, setctrl      ; set ctrl
         
       call    catchup         ; *-* LINK CHECK *+*
@@ -584,44 +582,46 @@ scroll_left:
         ld      a, (sx)
         sub     4
         ld      (sx), a
-        ld      a, 1
-        ld      (panned), a
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jr      scrolled
+        
 scroll_right:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
         ld      a, (sx)
         add     a, 4
         ld      (sx), a
-        ld      a, 1
-        ld      (panned), a
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jr      scrolled
+        
 scroll_up:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
         ld      a, (sy)
         sub     2
         ld      (sy), a
-        ld      a, 1
-        ld      (panned), a
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jr scrolled
+        
 scroll_down:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
         ld      a, (sy)
         add     a, 2
         ld      (sy), a
-        ld      a, 1
-        ld      (panned), a
         pop     af
+      ; jr scrolled ; fall-through
+
+scrolled:
       call    catchup         ; *-* LINK CHECK *+*
-        ret
+        push    af
+        ld      a, (panned)
+        or      1
+        ld      (panned), a
+        xor     a
+        ld      (autoscroll), a
+        pop af
+      jp    catchup         ; *-* LINK CHECK *+*
 
 jumphome:
         ld      a, (sx)
@@ -631,12 +631,27 @@ jumphome:
         xor     a
         ld      (sx), a
         
-        ld      a, 1
+        ld      a, (panned)
+        or      1
         ld      (panned), a
         ret
 
 ; benryves: scroll the window to bring the cursor into view
 jumpcursor:
+        ld      a, 1
+        ld      (autoscroll), a
+        call    cursor_to_window
+        ret     z
+        ld      a, (panned)
+        or      1
+        ld      (panned), a
+        xor     a
+        ret
+
+cursor_to_window:
+        push    bc
+        
+        ld      c, 0
         ld      a, (sx)
         ld      b, a
 
@@ -652,8 +667,7 @@ curx_not_80:
         add     a, b
         ld      (sx), a
         
-        ld      a, 1
-        ld      (panned), a
+        inc     c
         
         jr      notoffright
         
@@ -665,8 +679,7 @@ notoffleft:
         sub     23
         ld      (sx), a
 
-        ld      a, 1
-        ld      (panned), a
+        inc     c
         
 notoffright:
 
@@ -680,8 +693,7 @@ notoffright:
         add     a, b
         ld      (sy), a
         
-        ld      a, 1
-        ld      (panned), a
+        inc     c
         
         jr      notoffbottom
         
@@ -693,19 +705,38 @@ notofftop:
         sub     9
         ld      (sy), a
 
-        ld      a, 1
-        ld      (panned), a
+        inc     c
 
 notoffbottom:
+        
+        ld      a, c
+        or      a
+        ld      a, 0
+        
+        pop     bc
+        ret
+
+cursor_moved:
+        ld      a, (autoscroll)
+        or  	a
+        ret     z
+        
+        call    cursor_to_window
+        ret     z
+        ld      a, (panned)
+        or      2
+        ld      (panned), a
         xor     a
         ret
 
-mm_mode_swap:
+mm_mode_swap: ; benryves: now cycles between 0, 1 and 3 for manual/autoscroll modes.
         ld      a, (mm_mode)
-        or      a           ;        cp      0
-        ld      a, 1
-        jr      z, mmzero
-        xor     a           ;        ld      a, 0
+        inc     a
+        cp      2
+        jr      nz, mm_not_2
+        inc     a
+mm_not_2:
+        and     3
 mmzero:
         ld      (mm_mode), a
         ret
@@ -827,7 +858,7 @@ putchar_normal:
         inc     a
         ld      (curx), a
       call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jp      cursor_moved
 
 putnewline:
         ld      a, (scr_bot)
@@ -838,18 +869,18 @@ putnewline:
 
         inc     a
         ld      (pcury), a
-        ret
+        jp      cursor_moved
 putreturn:
         ld      a, 0
         ld      (curx), a
-        ret
+        jp      cursor_moved
 putbs:
         ld      a, (curx)
-        cp      0
+        or      a
         ret     z
         dec     a
         ld      (curx), a
-        ret
+        jp      cursor_moved
 putscroll:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (scr_top)
@@ -962,11 +993,11 @@ tablp:
         call    nc, fixtab
         ld      (curx), a
       call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jp      cursor_moved
 fixtab:
         ld      a, 79
       call    catchup         ; *-* LINK CHECK *+*
-        ret
+        jp      cursor_moved
 
 
 
@@ -1323,11 +1354,15 @@ statnext6_1:
 statnext6_2:
 
         ld      a, (mm_mode)
-        cp      0
+        or      a
         jr      z, statnext7
+        dec     a                   ; benryves: now shows shaded for mode 1, solid for mode 3
         ld      a, 16
         ld      e, 56
         ld      hl, statusshade
+        jr      z, mm_shaded
+        ld      hl, statusfill
+mm_shaded:
         call    DRWSPR
 statnext7:
 
@@ -2061,7 +2096,7 @@ vtcurleft:
         sub     b
         call    under0
         ld      (curx), a
-        ret
+        jp      cursor_moved
 
 vt100cursorrightpress:
         ld      b, 1
@@ -2079,7 +2114,7 @@ vtcurright:
         add     a, b
         call    over_c
         ld      (curx), a
-        ret
+        jp      cursor_moved
 
 vt100cursoruppress:
         ld      b, 1
@@ -2094,7 +2129,7 @@ vtcurup:
         sub     b
         call    under0
         ld      (pcury), a
-        ret
+        jp      cursor_moved
 
 vt100cursordownpress:
         ld      b, 1
@@ -2110,7 +2145,7 @@ vtcurdown:
         add     a, b
         call    over_c
         ld      (pcury), a
-        ret
+        jp      cursor_moved
 
 vt100cursorreset:
         ld      c, 1
@@ -2163,7 +2198,7 @@ vt_gotoxy:
         ld      (curx), a
         ld      a, b
         ld      (pcury), a
-        ret
+        jp      cursor_moved
 
 vt100entirescreen:
         ld      hl, term
@@ -2183,7 +2218,7 @@ vtclearlp:
         xor     a
         ld      (curx), a
         ld      (pcury), a ; benryves: was (cury)
-        ret
+        jp      cursor_moved
 
 vt100erasebegcursor:
 vt100erasecursorend:
@@ -2659,7 +2694,7 @@ scr_bot     = scr_top + 1       ; .db     23      ; bottom of scrolling region
 
 curattr     = scr_bot + 1       ; .db     0       ; cursor attributes (bold, inverse, etc)
 
-mm_mode     = curattr + 1       ; .db     1       ; minimap mode on?
+mm_mode     = curattr + 1       ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
 
 sdata_end   = mm_mode + 1
 sdata_s     = sdata_end - sdata
@@ -2684,8 +2719,9 @@ sendstat    = curshad + 1       ; .db    0  ; flag to force statusbar to display
                                 ; there's no data pending
 
 panned      =  sendstat + 1     ; .db     0       ; did you pan the screen during the previous loop?
+autoscroll  =  panned + 1       ; .db     1       ; should the screen autoscroll to show the cursor?
 
-n           = panned + 1        ; .dw     0       ; temp var
+n           = autoscroll + 1    ; .dw     0       ; temp var
 n2          = n + 2             ; .dw     0       ; temp var
 
 ;-----------+----------------------------------------------------+----------+
