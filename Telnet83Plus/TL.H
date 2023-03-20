@@ -23,18 +23,15 @@ recv_init:
 check_recv:
         ld      bc, (recv_start)
         ld      hl, (recv_end)
-        or      a ; benryves: ensure carry is cleared?
+        or      a ; benryves: ensure carry is cleared
         sbc     hl, bc
-        ld      a, 0
-        ret     z
-        ld      a, 1
         ret
 
 check_send:
         ret
+
 sendbyte:
-        call    send_outbyte
-        ret
+        jp    send_outbyte
 
 catchup:
         push    af
@@ -64,7 +61,6 @@ catchupnext:
         ld      (hl), a
         ld      hl, MAXRECV
         inc     bc
-        or      a ; benryves: ensure carry is cleared?
         sbc     hl, bc
         jr      nz, catchup2
         ld      bc, 0
@@ -107,7 +103,6 @@ recvbyte:
         ld      a, (hl)
         ld      hl, MAXRECV
         inc     bc
-        or      a ; benryves: ensure carry is cleared?
         sbc     hl, bc
         jr      nz, recvbyte2
         ld      bc, 0

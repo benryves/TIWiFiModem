@@ -1321,7 +1321,6 @@ stat_no_shift:
 statnext4:
 
         call    check_recv
-        or      a
         jr      z, statnext5
         ld      e, 11
         ld      hl, statusfill
