@@ -85,6 +85,8 @@ button:
 ; Telnet 83 | Program                                            | Infiniti |
 ;-----------+----------------------------------------------------+----------+
 start:
+        ; benryves: disable MirageOS interrupt
+        im      1
     
         ; benryves: we need to try to find the appvar before allocating buffers
         ; in case it's archived and we need to move it into RAM.
@@ -220,9 +222,25 @@ mainloop:
 
 no_directarrow:
         ; --- end ---
+        
+        ; benryves: is the ON key held?
+        in      a, ($04)
+        and     %00001000
+        jr      nz, no_on_held
+        
+      call    catchup         ; *-* LINK CHECK *+*
+        ; ON is held, so use alternate functions
+        bcall(_getcsc)
+        
+        cp      skYEqu  	    ; [Y=]
+        call    z, setlocalecho ; local echo toggle
+        
+        jr      no_key
+
+no_on_held:
 
         ; --- check keypad the normal way and respond accordingly ---
-        call    catchup         ; *-* LINK CHECK *+*
+      call    catchup         ; *-* LINK CHECK *+*
         bcall(_getcsc)          ;        call    getch
         cp      skGraph         ;        cp      15h
         jp      z, exit         ; quit
@@ -272,8 +290,8 @@ no_vtarrows:
         push    af
         ld      a, 1
         ld      (sendstat), a   ; flag the status bar to indicate send
-        pop     af
       call    catchup         ; *-* LINK CHECK *+*
+        pop     af
         call    sendbyte        ; chuck it out the window
       call    catchup         ; *-* LINK CHECK *+*
 no_key:
@@ -498,51 +516,44 @@ appvarname:
 send_vt100_up:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
-        ld      a, ESC
-        call    sendbyte
-        ld      a, '['
-        call    sendbyte
         ld      a, 'A'
-        call    sendbyte
+        call    send_vt100_arrow
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
         ret
+        
 send_vt100_down:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
-        ld      a, ESC
-        call    sendbyte
-        ld      a, '['
-        call    sendbyte
         ld      a, 'B'
-        call    sendbyte
+        call    send_vt100_arrow
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
         ret
+        
 send_vt100_left:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
-        ld      a, ESC
-        call    sendbyte
-        ld      a, '['
-        call    sendbyte
         ld      a, 'D'
-        call    sendbyte
+        call    send_vt100_arrow
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
         ret
 send_vt100_right:
       call    catchup         ; *-* LINK CHECK *+*
         push    af
+        ld      a, 'C'
+        call    send_vt100_arrow
+        pop     af
+        ret
+
+send_vt100_arrow:
+        push    af
+      call    catchup         ; *-* LINK CHECK *+*
         ld      a, ESC
         call    sendbyte
         ld      a, '['
         call    sendbyte
-        ld      a, 'C'
-        call    sendbyte
         pop     af
-      call    catchup         ; *-* LINK CHECK *+*
-        ret
+        call    sendbyte
+      jp    catchup           ; *-* LINK CHECK *+*
 
 killesc:
       call    catchup         ; *-* LINK CHECK *+*
@@ -721,7 +732,7 @@ notoffbottom:
 
 cursor_moved:
         ld      a, (autoscroll)
-        or  	a
+        or      a
         ret     z
         
         call    cursor_to_window
@@ -793,16 +804,21 @@ setwrap:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (wrap)
         cp      80
-        jr      z, setwrap24
         ld      a, 80
-        ld      (wrap), a
-        ld      a, 0
-        ret
+        jr      nz, setwrapvalue
 setwrap24:
-      call    catchup         ; *-* LINK CHECK *+*
         ld      a, 24
+setwrapvalue:
         ld      (wrap), a
-        ld      a, 0
+        xor     a
+        ret
+
+setlocalecho:
+      call    catchup         ; *-* LINK CHECK *+*
+        ld      a, (local_echo)
+        xor     1
+        ld      (local_echo), a
+        xor a
         ret
 
 putchar:
@@ -1312,35 +1328,30 @@ stat_draw_shift:
         
 stat_no_shift:
         
-        ld      a, (wrap)
-        cp      24
-        jr      nz, statnext4
         ld      e, 1
         ld      hl, statusfill
-        call    drawstatus
-statnext4:
+        ld      a, (wrap)
+        cp      24
+        call    z, drawstatus
 
         call    check_recv
-        jr      z, statnext5
         ld      e, 11
         ld      hl, statusfill
-        call    drawstatus
-statnext5:
+        call    nz, drawstatus
 
         ld      a, (sendstat)
-        cp      1
-        jr      z, statnext6_1
-        call    check_send
         or      a
-        jr      z, statnext6_2
-statnext6_1:
-
         ld      e, 10
         ld      hl, statusfill
-        call    drawstatus
-        ld      a, 0
+        call    nz, drawstatus
+        xor     a
         ld      (sendstat), a
-statnext6_2:
+        
+        ld      e, 9
+        ld      hl, statusshade
+        ld      a, (local_echo)
+        or      a
+        call    nz, drawstatus
 
         ld      a, (mm_mode)
         or      a
@@ -2022,6 +2033,7 @@ vt_gotoxy:
         jp      cursor_moved
 
 vt100entirescreen:
+        call    cursor_off
         ld      hl, term
         ld      bc, 2000
 vtclearlp:
@@ -2030,11 +2042,8 @@ vtclearlp:
         ld      (hl), a
         inc     hl
         dec     bc
-        ld      a, c
-        cp      0
-        jr      nz, vtclearlp
         ld      a, b
-        cp      0
+        or      c
         jr      nz, vtclearlp
         xor     a
         ld      (curx), a
@@ -2189,6 +2198,16 @@ vt100reset:
 vt100cursorreport:
 
 vt100timefinish:
+        ret
+
+vt102localechooff:
+        xor    a
+        ld      (local_echo), a
+        ret
+
+vt102localechoon:
+        ld      a, 1
+        ld      (local_echo), a
         ret
 
 getparam:
@@ -2464,7 +2483,9 @@ curattr     = scr_bot + 1       ; .db     0       ; cursor attributes (bold, inv
 
 mm_mode     = curattr + 1       ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
 
-sdata_end   = mm_mode + 1
+local_echo  = mm_mode + 1       ; .db     0
+
+sdata_end   = local_echo + 1
 sdata_s     = sdata_end - sdata
 
 ; temporary data
@@ -2638,6 +2659,12 @@ vt100table:
     .db $03,'[','6','n'
     .dw vt100cursorreport
 
+    ; benryves: VT102 extensions
+    .db $04,'[','1','2','h'
+    .dw vt102localechooff
+    .db $04,'[','1','2','l'
+    .dw vt102localechoon
+
     .db $02,'#',$00             ;this accounts for vt100 commands impossible on 85
     .dw vt100timefinish         ;this label just jumps them back to the end of vt100
     .db $03,'[',$00,'q'
@@ -2686,6 +2713,7 @@ vt100table:
     .dw vt100timefinish
     .db $01,'>'
     .dw vt100timefinish
+    
     .db $FF
 
 ;-----------+----------------------------------------------------+----------+

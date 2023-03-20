@@ -27,11 +27,27 @@ check_recv:
         sbc     hl, bc
         ret
 
-check_send:
-        ret
-
 sendbyte:
-        jp    send_outbyte
+        push    af
+        ld      a, (local_echo)
+        or      a
+        jr      z, no_local_echo
+        
+        ; local echo, so inject the data into the receive buffer
+        ld      de, (recv_free)
+        ld      a, d
+        or      e
+        jr      z, no_local_echo
+        
+        pop     af
+        push    af
+        push    hl
+        call    catchup_enqueue
+        pop     hl
+        
+no_local_echo:
+        pop     af
+        jp      send_outbyte
 
 catchup:
         push    af
@@ -55,6 +71,25 @@ catchuplp:
         jr      c, catchupdone
 
 catchupnext:
+        call    catchup_enqueue
+        
+        ; benryves: only loop around if there's free space in the buffer
+        jr      nz, catchuplp
+        jr      catchupdone
+
+catchupnofirst:
+        pop     hl
+        pop     af
+        ret
+
+catchupdone:
+        pop     bc
+        pop     de
+        pop     hl
+        pop     af
+        ret
+
+catchup_enqueue:
         ld      bc, (recv_end)
         ld      hl, recvbuf
         add     hl, bc
@@ -73,21 +108,6 @@ catchup2:
         ld      (recv_free), hl
         ld      a, h
         or      l
-        
-        ; benryves: only loop around if there's free space in the buffer
-        jr      nz, catchuplp
-        jr      catchupdone
-
-catchupnofirst:
-        pop     hl
-        pop     af
-        ret
-
-catchupdone:
-        pop     bc
-        pop     de
-        pop     hl
-        pop     af
         ret
 
 recvbyte:
