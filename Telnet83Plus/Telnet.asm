@@ -624,6 +624,9 @@ scrolled:
       jp    catchup         ; *-* LINK CHECK *+*
 
 jumphome:
+        xor     a
+        ld      (autoscroll), a
+        
         ld      a, (sx)
         or      a
         ret     z
