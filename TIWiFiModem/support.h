@@ -396,13 +396,13 @@ void checkForIncomingCall() {
             if( !settings.autoAnswer || ringCount < settings.autoAnswer ) {
                sendResult(R_RING);     // only show RING if we're not just
             }                          // about to answer
-            nextRingMs = millis() + RING_INTERVAL;
+            nextRingMs = millis() + RING_INTERVAL * 2;
          } else if( millis() > nextRingMs ) {
             ++ringCount;
             if( !settings.autoAnswer || ringCount < settings.autoAnswer ) {
               sendResult(R_RING);
             }
-            nextRingMs = millis() + RING_INTERVAL;
+            nextRingMs = millis() + RING_INTERVAL * 2;
          }
       } else if( settings.autoAnswer && ringCount >= settings.autoAnswer ) {
          tcpClient = tcpServer.available();
