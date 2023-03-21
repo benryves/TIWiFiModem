@@ -65,7 +65,17 @@ void setup(void) {
       }
    }
 
-   WiFi.begin();
+   if( LED_BUILTIN != TILP_D0 && LED_BUILTIN != TILP_D1 && settings.ssid[0] && settings.wifiPassword[0] ) {
+      // for some reason my ESP-01S fails to connect first time,
+      // but putting this line in makes it work.
+      // however, starting Wi-Fi this way stops my ESP-01 from
+      // connecting, hence the LED pin check above.
+      WiFi.begin(settings.ssid, settings.wifiPassword);
+   } else {
+     // regular Wi-Fi init.
+     WiFi.begin();
+   }
+
    if( settings.ssid[0] ) {
       WiFi.waitForConnectResult();
       WiFi.mode(WIFI_STA);
