@@ -232,7 +232,7 @@ no_directarrow:
         ; ON is held, so use alternate functions
         bcall(_getcsc)
         
-        cp      skYEqu  	    ; [Y=]
+        cp      skYEqu          ; [Y=]
         call    z, setlocalecho ; local echo toggle
         
         jr      no_key
@@ -302,20 +302,20 @@ more_data:
       call    catchup         ; *-* LINK CHECK *+*
         call    recvbyte        ; get a byte from the recv buffer
         or      a               ;       cp      0
-        jp      z, no_data      ; it's empty
+        jr      z, no_data      ; it's empty
 
       call    catchup         ; *-* LINK CHECK *+*
         ld      b, a
         ld      a, (in_seq)
         or      a               ;        cp      0
         ld      a, b
-        jp      nz, add2esc     ; continue the current vt100 sequence
+        jr      nz, add2esc     ; continue the current vt100 sequence
         cp      ESC
-        jp      z, handle_esc   ; begin tracking a new vt100 sequence
+        jr      z, handle_esc   ; begin tracking a new vt100 sequence
       call    catchup         ; *-* LINK CHECK *+*
         call    putchar         ; display the character
       call    catchup         ; *-* LINK CHECK *+*
-        jp      incoming_done
+        jr      incoming_done
 
 handle_esc:
         ld      a, 1
@@ -323,7 +323,7 @@ handle_esc:
         ld      hl, seqbuf
         ld      a, ESC
         ld      (hl), a         ; load an ESC character into the sequence
-        jp      incoming_done
+        jr      incoming_done
 add2esc:
         ld      hl, seqbuf
         ld      d, a
@@ -337,18 +337,17 @@ add2esc:
         ld      (hl), a         ; add in the new character to the sequence
         call    check_seq       ; see if the sequence has a match
         or      a               ;        cp      0
-        jp      z, seqoverflow  ; no match or sequence to big?
+        jr      z, seqoverflow  ; no match or sequence to big?
         cp      2
         call    z, erase_esc    ; perfect match was executed, delete now
-        jp      incoming_done
+        jr      incoming_done
 
 seqoverflow:
       call    catchup         ; *-* LINK CHECK *+*
         call    killesc         ; output the sequence to the screen
       call    catchup         ; *-* LINK CHECK *+*
-        ld      a, 0
+        xor     a
         ld      (in_seq), a     ; flag out the sequence pointer
-        jp      incoming_done
 
 incoming_done:
       call    catchup         ; *-* LINK CHECK *+*
@@ -1796,88 +1795,112 @@ bufclrlp:
 ; Telnet 83 | VT100 functions                                    | Infiniti |
 ;-----------+----------------------------------------------------+----------+
 check_seq:
+        ; clear the partial match flag
+        xor     a
+        ld      (check_partial), a
+        
         ld      ix, vt100table
 check_mainlp:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (ix)
-        ld      b, a
-        cp      255
-        jr      z, check_done_nomatch
-        push    bc
+        
+        ld      b, a            ; total length of sequence
+        inc     a               ; 255?
+        jr      z, check_done_finished
+        
         push    ix
       call    catchup         ; *-* LINK CHECK *+*
         call    check_seqn
       call    catchup         ; *-* LINK CHECK *+*
         pop     ix
-        pop     bc
 
-        cp      1
-        jp      z, check_done_partial
-        cp      2
-        jp      z, check_done_executed
-        ld      a, b
-        inc     a
-        ld      c, a
+        cp      2               ; did we execute the sequence?
+        ret     z
+
+        cp      1               ; was it a partial sequence?
+        jr      nz, check_done_not_partial
+        
+        ld      (check_partial), a
+
+check_done_not_partial:
+        
+        ld      c, (ix)
+        inc     c
         ld      b, 0
         add     ix, bc
         inc     ix
         inc     ix
-        jp      check_mainlp
+        jr      check_mainlp
 
-check_done_nomatch:
-        ld      a, 0
-        ret
-check_done_partial:
+check_done_finished:
+        ; did we make any partial matches?
+        ld      a, (check_partial)
+        or      a
+        ret     z
+        
+        ; has the sequence filled the buffer?
+        ld      a, (in_seq)
+        cp      seqbuf_s
         ld      a, 1
-        ret
-check_done_executed:
-        ld      a, 2
+        ret     c
+        xor     a
         ret
 
 check_seqn:
         ld      hl, seqbuf+1
-        ld      a, 0
-        ld      (check_partial), a
-        ld      a, (ix)
-        ld      b, a
+        ld      b, (ix)         ; B = total length of expected sequence pattern
         ld      a, (in_seq)
-        dec     a
-        cp      b
-        call    c, check_resize
+        ld      c, a            ; C = total length of received sequence characters
         inc     ix
 check_seqlp:
-      call    catchup         ; *-* LINK CHECK *+*
+        dec     c               ; are we out of characters to read?
+        jr      z, check_out_of_seq
+     call    catchup         ; *-* LINK CHECK *+*
         push    bc
         ld      a, (ix)
-        cp      0
-        jr      z, check_digit
-        jr      check_norm
+        or      a
+        jr      nz, check_norm
+        
 check_digit:
         ld      a, (hl)
-        sub     '0'
+        cp      '0'
         jr      c, check_bad
-        ld      a, (hl)
-        sub     '9'+1
+        cp      '9'+1
         jr      nc, check_bad
+        
+check_digits:
+        
+        inc     hl
+        pop     bc
+        dec     c
+        jr      z, check_out_of_seq
+        push    bc
+        
+        ld      a, (hl)
+        cp      '0'
+        jr      c, check_digit_ended
+        cp      '9'+1
+        jr      nc, check_digit_ended
+        
+        jr      check_digits
+
+check_digit_ended:
+        dec     hl
+        pop     bc
+        inc     c
+        push    bc
         jr      check_ok
 
 check_norm:
-        ld      b, a
-        ld      a, (hl)
-        cp      b
+        cp      (hl)
         jr      nz, check_bad
-        jr      check_ok
-
+        
 check_ok:
         inc     hl
         inc     ix
         pop     bc
         djnz    check_seqlp
-
-        ld      a, (check_partial)
-        cp      1
-        ret     z
-
+        
         ld      hl, check_return_from
         push    hl
         call    cursor_off
@@ -1892,20 +1915,17 @@ check_ok:
         jp      (ix)
 check_return_from:
         ld      a, 2
-      call    catchup         ; *-* LINK CHECK *+*
+     call    catchup         ; *-* LINK CHECK *+*
         ret
 
 check_bad:
         pop     bc
-        ld      a, 0
+        xor     a
         ret
 
-check_resize:
-        ld      b, a
+check_out_of_seq:
         ld      a, 1
-        ld      (check_partial), a
         ret
-
 
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | VT100 escape sequences                             | Infiniti |
@@ -1917,9 +1937,6 @@ vt100cursorleftpress:
         jr      vtcurleft
 vt100cursorleft:
         call    getparam
-        jr      vtcurleft
-vt100cursorleftlots:
-        call    getparam2
 vtcurleft:
         ld      a, (curx)
         sub     b
@@ -1932,9 +1949,6 @@ vt100cursorrightpress:
         jr      vtcurright
 vt100cursorright:
         call    getparam
-        jr      vtcurright
-vt100cursorrightlots:
-        call    getparam2
 vtcurright:
         ld      a, (wrap)
         dec     a
@@ -1950,9 +1964,6 @@ vt100cursoruppress:
         jr      vtcurup
 vt100cursorup:
         call    getparam
-        jr      vtcurup
-vt100cursoruplots:
-        call    getparam2
 vtcurup:
         ld      a, (pcury)
         sub     b
@@ -1965,9 +1976,6 @@ vt100cursordownpress:
         jr      vtcurdown
 vt100cursordown:
         call    getparam
-        jr      vtcurdown
-vt100cursordownlots:
-        call    getparam2
 vtcurdown:
         ld      c, 25-1
         ld      a, (pcury)
@@ -1986,27 +1994,6 @@ vt100changecursor:
         ld      c, a
         inc     hl
         call    getparam
-        jr      vt_gotoxy
-vt100changeud:
-        call    getparam2
-        ld      a, b
-        ld      c, a
-        inc     hl
-        call    getparam
-        jr      vt_gotoxy
-vt100changelr:
-        call    getparam
-        ld      a, b
-        ld      c, a
-        inc     hl
-        call    getparam2
-        jr      vt_gotoxy
-vt100changeudlr:
-        call    getparam2
-        ld      a, b
-        ld      c, a
-        inc     hl
-        call    getparam2
 vt_gotoxy:
         ld      a, c
         ld      d, a
@@ -2064,46 +2051,6 @@ vt100setscrolling:
         cp      24
         ret     nc
         ld      (n2), a
-        jp      vt100ss1
-vt100setscrollingb:
-        call    getparam
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n), a
-        inc     hl
-        call    getparam2
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n2), a
-        jp      vt100ss1
-vt100setscrollingt:
-        call    getparam2
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n), a
-        inc     hl
-        call    getparam
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n2), a
-        jp      vt100ss1
-vt100setscrollingtb:
-        call    getparam2
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n), a
-        inc     hl
-        call    getparam2
-        dec     a
-        cp      24
-        ret     nc
-        ld      (n2), a
-        jp      vt100ss1
 vt100ss1:
         ld      a, (n)
         ld      b, a
@@ -2214,36 +2161,36 @@ vt102localechoon:
         ld      (local_echo), a
         ret
 
-getparam:
+getparam: ; benryves: now supports values with multiple digits
+        ld      b, 0
+getparamlp:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (hl)
         inc     hl
         sub     '0'
+        add     a, b
         ld      b, a
-        ret
-
-getparam2:
-      call    catchup         ; *-* LINK CHECK *+*
-        push    bc
+        
         ld      a, (hl)
-        inc     hl
-        sub     '0'
-        ;slr     a
-        ld      c, a
-        ld      b, 9
-getparam2lp:
-        add     a, c
-        djnz    getparam2lp
-        ld      c, a
-        ld      a, (hl)
-        inc     hl
-        sub     '0'
-        add     a, c
-        pop     bc
+        cp      '0'
+        jr      c, getparam_end
+        cp      '9'+1
+        jr      nc, getparam_end
+        
+        ; we have another digit after the current one, so multiply what we have so far by 10
+        ld      a, b
+        add     a, a
+        add     a, a
+        add     a, a
+        add     a, b
+        add     a, b
         ld      b, a
-      call    catchup         ; *-* LINK CHECK *+*
+        jr      getparamlp
+        
+getparam_end:
+        ld      a, b
         ret
-
+        
 under0:
         ret     nc
         ld      a, 0
@@ -2517,7 +2464,8 @@ n2          = n + 2             ; .dw     0       ; temp var
 ; buffer for vt100 sequences
 
 seqbuf      = n2 + 2            ; .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-in_seq      = seqbuf + 20       ; .db     0
+seqbuf_s    = 20
+in_seq      = seqbuf + seqbuf_s ; .db     0
 ;scurx   .db     0
 ;scury   .db     0
 
@@ -2544,28 +2492,20 @@ data_s      = sdata_s + tdata_s
     ;          last in table - $FF, terminator
 
 vt100table:
-    .db $04,'[',$00,$00,'D'
-    .dw vt100cursorleftlots
     .db $03,'[',$00,'D'
     .dw vt100cursorleft
     .db $02,'[','D'
     .dw vt100cursorleftpress
     .db $03,'[',$00,'C'
     .dw vt100cursorright
-    .db $04,'[',$00,$00,'C'
-    .dw vt100cursorrightlots
     .db $02,'[','C'
     .dw vt100cursorrightpress
     .db $03,'[',$00,'A'
     .dw vt100cursorup
-    .db $04,'[',$00,$00,'A'
-    .dw vt100cursoruplots
     .db $02,'[','A'
     .dw vt100cursoruppress
     .db $03,'[',$00,'B'
     .dw vt100cursordown
-    .db $04,'[',$00,$00,'B'
-    .dw vt100cursordownlots
     .db $02,'[','B'
     .dw vt100cursordownpress
 
@@ -2575,20 +2515,8 @@ vt100table:
     .dw vt100cursorreset
     .db $05,'[',$00,';',$00,'H'
     .dw vt100changecursor
-    .db $06,'[',$00,$00,';',$00,'H'
-    .dw vt100changeud
-    .db $06,'[',$00,';',$00,$00,'H'
-    .dw vt100changelr
-    .db $07,'[',$00,$00,';',$00,$00,'H'
-    .dw vt100changeudlr
     .db $05,'[',$00,';',$00,'f'
     .dw vt100changecursor
-    .db $06,'[',$00,$00,';',$00,'f'
-    .dw vt100changeud
-    .db $06,'[',$00,';',$00,$00,'f'
-    .dw vt100changelr
-    .db $07,'[',$00,$00,';',$00,$00,'f'
-    .dw vt100changeudlr
 
     .db $03,'[','2','J'
     .dw vt100entirescreen
@@ -2600,13 +2528,7 @@ vt100table:
     .dw vt100erasecursorend
     .db $05,'[',$00,';',$00,'r'
     .dw vt100setscrolling
-    .db $06,'[',$00,';',$00,$00,'r'
-    .dw vt100setscrollingb
-    .db $06,'[',$00,$00,';',$00,'r'
-    .dw vt100setscrollingt
-    .db $07,'[',$00,$00,';',$00,$00,'r'
-    .dw vt100setscrollingtb
-
+    
     .db $01,'7'
     .dw vt100storecoords
     .db $01,'8'
@@ -2693,17 +2615,9 @@ vt100table:
     .dw vt100timefinish
     .db $03,'[',$00,'l'
     .dw vt100timefinish
-    .db $04,'[',$00,$00,'h'
-    .dw vt100timefinish
-    .db $04,'[',$00,$00,'l'
-    .dw vt100timefinish
     .db $04,'[','?',$00,'h'
     .dw vt100timefinish
     .db $04,'[','?',$00,'l'
-    .dw vt100timefinish
-    .db $05,'[','?',$00,$00,'h'
-    .dw vt100timefinish
-    .db $05,'[','?',$00,$00,'l'
     .dw vt100timefinish
     .db $01,'='
     .dw vt100timefinish
