@@ -36,12 +36,17 @@ Set Tools&rarr;Builtin Led to "1".
 
 The following circuit diagram shows how the pin connections should be made to the ESP-01S:
 
-![TIWiFi Modem circuit diagram for ESP-02](TIWiFiModem/images/ESP-01S-circuit.png)
+![TIWiFi Modem circuit diagram for ESP-01S](TIWiFiModem/images/ESP-01S-circuit.png)
 
-
-Pull-up resistors are required on `GPIO0`, `GPIO2`, `CH_PD` and `RST` for the module to boot correctly. The ESP-01S includes a 12K pull-up resistor on `GPIO0`, `CH_PD` and `RST`, so you only need to provide one for `GPIO2`.
+Pull-up resistors are required on `GPIO0`, `GPIO2`, `CH_PD` and `RST` for the module to boot correctly. The ESP-01S already includes a 12K pull-up resistor on `GPIO0`, `CH_PD` and `RST`, so you only need to provide one for `GPIO2`.
 
 Set Tools&rarr;Builtin Led to "2".
+
+### Power Supply
+
+The ESP-01/ESP-01S requires a 3.3V supply and reportedly draws up to 170mA of current (in normal operation mine seems to draw around 80mA). A low drop-out 3.3V regulator can be used to supply the circuit from a 5V source (e.g. a USB charger or power bank). The MCP1700 3302 is rated for up to 250mA and does its job well.
+
+![Power supply circuit for TI WiFi Modem using MCP1700 regulator](TIWiFiModem/images/power-circuit.png)
 
 ## Terminal Software
 
