@@ -87,6 +87,34 @@ char *doMdnsName(char *atCmd) {
          ++atCmd;
          strncpy(settings.mdnsName , atCmd, MAX_MDNSNAME_LEN);
          settings.mdnsName[MAX_MDNSNAME_LEN] = NUL;
+         ArduinoOTA.setHostname(settings.mdnsName);
+         atCmd[0] = NUL;
+         sendResult(R_OK);
+         break;
+
+      default:
+         sendResult(R_ERROR);
+         lastCmd[0] = NUL;
+         break;
+   }
+   return atCmd;
+}
+
+char *doHostName(char *atCmd) {
+   switch( atCmd[0] ) {
+      case '?':
+         ++atCmd;
+         tilp.println(WiFi.hostname());
+         if( !atCmd[0] ) {
+            sendResult(R_OK);
+         }
+         break;
+
+      case '=':
+         ++atCmd;
+         strncpy(settings.hostName, atCmd, MAX_HOSTNAME_LEN);
+         settings.hostName[MAX_HOSTNAME_LEN] = NUL;
+         WiFi.hostname(atCmd);
          atCmd[0] = NUL;
          sendResult(R_OK);
          break;

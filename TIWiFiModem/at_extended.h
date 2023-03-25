@@ -17,7 +17,8 @@ char *factoryDefaults(char *atCmd) {
       settings.alias[i][0] = NUL;
       settings.speedDial[i][0] = NUL;
    }
-   strcpy(settings.mdnsName, "espmodem");
+   strcpy(settings.mdnsName, "TIWiFiModem");
+   settings.hostName[0] = NUL;
    settings.autoAnswer = 0;
    settings.listenPort = 0;
    strcpy(settings.busyMsg, "Sorry, the system is currently busy. Please try again later.");

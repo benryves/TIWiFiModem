@@ -599,6 +599,7 @@ void displayCurrentSettings(void) {
    tilp.printf("Baud.......: %lu\r\n", settings.serialSpeed); yield();
    tilp.printf("SSID.......: %s\r\n", settings.ssid); yield();
    tilp.printf("Pass.......: %s\r\n", settings.wifiPassword); yield();
+   tilp.printf("Hostname...: %s\r\n", settings.hostName); yield();
    tilp.printf("mDNS name..: %s.local\r\n", settings.mdnsName); yield();
    tilp.printf("Server port: %u\r\n", settings.listenPort); yield();
    tilp.printf("Busy msg...: %s\r\n", settings.busyMsg); yield();
@@ -626,6 +627,7 @@ void displayStoredSettings(void) {
    uint16_t v_uint16;
    uint32_t v_uint32;
    char v_char16[16 + 1];
+   char v_char24[24 + 1];
    char v_char32[32 + 1];
    char v_char50[50 + 1];
    char v_char64[64 + 1];
@@ -634,6 +636,7 @@ void displayStoredSettings(void) {
    tilp.printf("Baud.......: %lu\r\n", EEPROM.get(offsetof(struct Settings, serialSpeed),v_uint32)); yield();
    tilp.printf("SSID.......: %s\r\n", EEPROM.get(offsetof(struct Settings, ssid), v_char32)); yield();
    tilp.printf("Pass.......: %s\r\n", EEPROM.get(offsetof(struct Settings, wifiPassword), v_char64)); yield();
+   tilp.printf("Hostname...: %s\r\n", EEPROM.get(offsetof(struct Settings, hostName), v_char24)); yield();
    tilp.printf("mDNS name..: %s.local\r\n", EEPROM.get(offsetof(struct Settings, mdnsName), v_char80)); yield();
    tilp.printf("Server port: %u\r\n", EEPROM.get(offsetof(struct Settings, listenPort), v_uint16)); yield();
    tilp.printf("Busy Msg...: %s\r\n", EEPROM.get(offsetof(struct Settings, busyMsg),v_char80)); yield();

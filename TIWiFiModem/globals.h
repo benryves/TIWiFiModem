@@ -31,6 +31,7 @@
       char      alias[SPEED_DIAL_SLOTS][MAX_ALIAS_LEN + 1];
       char      speedDial[SPEED_DIAL_SLOTS][MAX_SPEED_DIAL_LEN + 1];
       char      mdnsName[MAX_MDNSNAME_LEN + 1];
+      char      hostName[MAX_HOSTNAME_LEN + 1];
       uint8_t   autoAnswer;
       uint16_t  listenPort;
       char      busyMsg[MAX_BUSYMSG_LEN + 1];

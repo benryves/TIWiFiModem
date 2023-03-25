@@ -65,6 +65,10 @@ void setup(void) {
       }
    }
 
+   if( settings.hostName[0] ) {
+     WiFi.hostname(settings.hostName);
+   }
+
    if( LED_BUILTIN != TILP_D0 && LED_BUILTIN != TILP_D1 && settings.ssid[0] && settings.wifiPassword[0] ) {
       // for some reason my ESP-01S fails to connect first time,
       // but putting this line in makes it work.
@@ -292,6 +296,9 @@ void doAtCmds(char *atCmd) {
                } else if( !strncasecmp(atCmd, "$MDNS", 5) ) {
                   // handle mDNS name
                   atCmd = doMdnsName(atCmd + 5);
+               } else if( !strncasecmp(atCmd, "$HOST", 5) ) {
+                  // handle hostname
+                  atCmd = doHostName(atCmd + 5);
                } else {
                   // unrecognized command
                   sendResult(R_ERROR);

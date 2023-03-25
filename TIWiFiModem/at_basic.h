@@ -324,19 +324,21 @@ const char helpStr24[] PROGMEM = "Set speed dial: AT&Zn=host[:port],alias";
 const char helpStr25[] PROGMEM = "Auto execute..: AT$AE=AT command";
 const char helpStr26[] PROGMEM = "Are You There?: AT$AYT";
 const char helpStr27[] PROGMEM = "Busy message..: AT$BM=busy message";
-const char helpStr28[] PROGMEM = "mDNS name.....: AT$MDNS=mDNS name";
-const char helpStr29[] PROGMEM = "WiFi password.: AT$PASS=WiFi password";
-const char helpStr30[] PROGMEM = "Serial speed..: AT$SB=n";
-const char helpStr31[] PROGMEM = "Server port...: AT$SP=n";
-const char helpStr32[] PROGMEM = "WiFi SSID.....: AT$SSID=ssid";
-const char helpStr33[] PROGMEM = "Data config...: AT$SU=dps";
-const char helpStr34[] PROGMEM = "Location......: AT$TTL=telnet location";
-const char helpStr35[] PROGMEM = "Terminal size.: AT$TTS=WxH";
-const char helpStr36[] PROGMEM = "Terminal type.: AT$TTY=terminal type";
-const char helpStr37[] PROGMEM = "Startup wait..: AT$W=n";
-const char helpStr38[] PROGMEM = "";
-const char helpStr39[] PROGMEM = "Query most commands followed by '?'";
-const char helpStr40[] PROGMEM = "e.g. ATQ?, AT&K?, AT$SSID?";
+const char helpStr28[] PROGMEM = "Hostname......: AT$HOST=hostname";
+const char helpStr29[] PROGMEM = "mDNS name.....: AT$MDNS=mDNS name";
+const char helpStr30[] PROGMEM = "WiFi password.: AT$PASS=WiFi password";
+const char helpStr31[] PROGMEM = "Serial speed..: AT$SB=n";
+const char helpStr32[] PROGMEM = "Server port...: AT$SP=n";
+const char helpStr33[] PROGMEM = "WiFi SSID.....: AT$SSID=ssid";
+const char helpStr34[] PROGMEM = "Data config...: AT$SU=dps";
+const char helpStr35[] PROGMEM = "Location......: AT$TTL=telnet location";
+const char helpStr36[] PROGMEM = "Terminal size.: AT$TTS=WxH";
+const char helpStr37[] PROGMEM = "Terminal type.: AT$TTY=terminal type";
+const char helpStr38[] PROGMEM = "Startup wait..: AT$W=n";
+const char helpStr39[] PROGMEM = "";
+const char helpStr40[] PROGMEM = "Query most commands followed by '?'";
+const char helpStr41[] PROGMEM = "e.g. ATQ?, AT&K?, AT$SSID?";
+const char helpStr42[] PROGMEM = "";
 
 const char* const helpStrs[] PROGMEM = {
    helpStr01, helpStr02, helpStr03, helpStr04, helpStr05, helpStr06,
@@ -345,7 +347,7 @@ const char* const helpStrs[] PROGMEM = {
    helpStr19, helpStr20, helpStr21, helpStr22, helpStr23, helpStr24,
    helpStr25, helpStr26, helpStr27, helpStr28, helpStr29, helpStr30,
    helpStr31, helpStr32, helpStr33, helpStr34, helpStr35, helpStr36,
-   helpStr37, helpStr38, helpStr39, helpStr40
+   helpStr37, helpStr38, helpStr39, helpStr40, helpStr41, helpStr42
 };
 #define NUM_HELP_STRS (sizeof(helpStrs) / sizeof(helpStrs[0]))
 
@@ -439,6 +441,8 @@ char *showNetworkInfo(char *atCmd) {
       snprintf_P(infoLine, sizeof infoLine, PSTR("Gateway....: %s"), WiFi.gatewayIP().toString().c_str());
       if( PagedOut(infoLine) ) break;
       snprintf_P(infoLine, sizeof infoLine, PSTR("Subnet mask: %s"), WiFi.subnetMask().toString().c_str());
+      if( PagedOut(infoLine) ) break;
+      snprintf_P(infoLine, sizeof infoLine, PSTR("Hostname...: %s"), WiFi.hostname());
       if( PagedOut(infoLine) ) break;
       snprintf_P(infoLine, sizeof infoLine, PSTR("mDNS name..: %s.local"), settings.mdnsName);
       if( PagedOut(infoLine) ) break;
