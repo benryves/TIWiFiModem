@@ -1,5 +1,7 @@
 # TIWiFiModem
 
+![Photo of TI-83 Plus calculator connected to the TIWiFiModem](TIWiFiModem/images/Calculator.jpg)
+
 An ESP8266-based WiFi modem for TI graphical calculators based on RetroWiFiModem by mecparts.
 
 ## Modem hardware
@@ -11,6 +13,8 @@ As the TI graphical calculator lacks such a port I have written a `TILP` class t
 This class inherits from the Arduino's `Stream` class and so acts as a drop-in replacement for the `Serial` class.
 
 As this modem is designed to be used with a small pocket calculator I decided to use an ESP-01 module to keep the modem small too.
+
+![Photo of ESP-01S module next to the modem's assembled circuit board](TIWiFiModem/images/Board.jpg)
 
 It is compatible with both the ESP-01 and ESP-01S modules, which share a common pinout:
 
@@ -47,6 +51,12 @@ Set Tools&rarr;Builtin Led to "2".
 The ESP-01/ESP-01S requires a 3.3V supply and reportedly draws up to 170mA of current (in normal operation mine seems to draw around 80mA). A low drop-out 3.3V regulator can be used to supply the circuit from a 5V source (e.g. a USB charger or power bank). The MCP1700 3302 is rated for up to 250mA and does its job well.
 
 ![Power supply circuit for TI WiFi Modem using MCP1700 regulator](TIWiFiModem/images/power-circuit.png)
+
+### Enclosure
+
+It's a bit of a tight squeeze but I managed to fit the whole circuit into an RX2007 enclosure along with a barrel jack for connection to 5V power.
+
+![Photo of assembled circuit board inside its enclosure](TIWiFiModem/images/Enclosure.jpg)
 
 ## Terminal software
 
