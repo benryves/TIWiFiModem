@@ -100,6 +100,10 @@ char *doMdnsName(char *atCmd) {
    return atCmd;
 }
 
+//
+// AT$HOST? query hostname
+// AT$HOST=hostname set hostname
+//
 char *doHostName(char *atCmd) {
    switch( atCmd[0] ) {
       case '?':

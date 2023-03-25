@@ -442,7 +442,7 @@ char *showNetworkInfo(char *atCmd) {
       if( PagedOut(infoLine) ) break;
       snprintf_P(infoLine, sizeof infoLine, PSTR("Subnet mask: %s"), WiFi.subnetMask().toString().c_str());
       if( PagedOut(infoLine) ) break;
-      snprintf_P(infoLine, sizeof infoLine, PSTR("Hostname...: %s"), WiFi.hostname());
+      snprintf_P(infoLine, sizeof infoLine, PSTR("Hostname...: %s"), WiFi.getHostname());
       if( PagedOut(infoLine) ) break;
       snprintf_P(infoLine, sizeof infoLine, PSTR("mDNS name..: %s.local"), settings.mdnsName);
       if( PagedOut(infoLine) ) break;
