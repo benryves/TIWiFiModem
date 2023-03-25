@@ -1,12 +1,12 @@
 # TIWiFiModem
 
-An ESP8266-based WiFi modem for TI graphical calculators based on RetroWiFiModem
+An ESP8266-based WiFi modem for TI graphical calculators based on RetroWiFiModem by mecparts.
 
 ## Modem Hardware
 
-The modem is based on the [RetroWiFiModem](https://github.com/mecparts/RetroWiFiModem/) project.
+The modem is based on the [RetroWiFiModem](https://github.com/benryves/RetroWiFiModem/) project.
 
-The original project is designed to interface with a computer via an RS-232 port.
+The original project is designed to interface with a computer via an RS-232 serial port.
 As the TI graphical calculator lacks such a port I have written a `TILP` class that implement's the calculator's own link protocol in its place.
 This class inherits from the Arduino's `Stream` class and so acts as a drop-in replacement for the `Serial` class.
 
@@ -109,4 +109,4 @@ To return to the local command mode, enter the escape sequence (the default is `
 You will receive an `OK` confirmation, at which point you can send any desired commands to the modem.
 To return to the service you were connected to before, enter the `ATO` command to go back online. Alternatively, use `ATH` to hang up.
 
-As the modem firmware is heavily based on [RetroWiFiModem](https://github.com/mecparts/RetroWiFiModem/) please see that project documentation for full documentation of supported commands. Please note that any commands related to the serial port (such as changing baud rate or handshake settings) will have no effect.
+As the modem firmware is heavily based on [RetroWiFiModem](https://github.com/benryves/RetroWiFiModem/) please see that project documentation for full documentation of supported commands. Please note that any commands related to the serial port (such as changing baud rate or handshake settings) will have no effect.
