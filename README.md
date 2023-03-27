@@ -2,7 +2,7 @@
 
 ![Photo of TI-83 Plus calculator connected to the TIWiFiModem](TIWiFiModem/images/Calculator.jpg)
 
-An ESP8266-based WiFi modem for TI graphical calculators based on RetroWiFiModem by mecparts.
+An ESP8266-based WiFi modem for TI graphical calculators based on [RetroWiFiModem by mecparts](https://github.com/mecparts/RetroWiFiModem/).
 
 ## Modem hardware
 
@@ -168,9 +168,9 @@ AT&W
 
 Once you're successfully connected you should find that anything you type on the computer appears on the calculator's screen and anything you type on your calculator appears on your computer's screen.
 
-When you're in a call, you can return to the modem's command mode by entering the escape character three types with a pause of at least one second before and one second after.
+When you're in a call, you can return to the modem's command mode by entering the escape character three times with a pause of at least one second before and one second after.
 This is `+` by default, so type in `+++` and you should be greeted with the `OK` prompt.
-At this point you can choose to end the call by hanging up (enter `ATH`) or enter some other commands and then return online with the `ATO`.
+At this point you can choose to end the call by hanging up (enter `ATH`) or enter some other commands and then return online with `ATO`.
 
 The last thing we'll need to set up is to disable the modem's use of the Telnet protocol as we'll need a raw data connection.
 This can be done with the `ATNET` command, where mode 0 is the raw data mode and mode 1 enables Telnet:
