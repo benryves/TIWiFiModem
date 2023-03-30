@@ -48,7 +48,8 @@ void setup(void) {
       // no valid data in EEPROM/NVRAM, populate with defaults
       factoryDefaults(NULL);
    }
-   sessionTelnetType = settings.telnet;
+   sessionTelnetTypeSend = settings.telnet;
+   sessionTelnetTypeReceive = settings.telnet;
 
    // delay then flush incoming buffer to start from clean slate
    delay(2000);

@@ -51,7 +51,7 @@ void sendSerialData() {
    static uint32_t lastSerialData = 0;
    // in telnet mode, we might have to escape every single char,
    // so don't use more than half the buffer
-   size_t maxBufSize = (sessionTelnetType != NO_TELNET) ? TX_BUF_SIZE / 2 : TX_BUF_SIZE;
+   size_t maxBufSize = (sessionTelnetTypeSend != NO_TELNET) ? TX_BUF_SIZE / 2 : TX_BUF_SIZE;
    size_t len = tilp.available();
    if( len > maxBufSize) {
       len = maxBufSize;
@@ -90,12 +90,12 @@ void sendSerialData() {
    //
    // also in Telnet mode, escape every CR (0x0D) by inserting a NUL
    // after it into the buffer
-   if( sessionTelnetType != NO_TELNET ) {
+   if( sessionTelnetTypeSend != NO_TELNET ) {
       for( int i = len - 1; i >= 0; --i ) {
          if( txBuf[i] == IAC ) {
             memmove( txBuf + i + 1, txBuf + i, len - i);
             ++len;
-         } else if( txBuf[i] == CR && sessionTelnetType == REAL_TELNET ) {
+         } else if( txBuf[i] == CR && sessionTelnetTypeSend == REAL_TELNET ) {
             memmove( txBuf + i + 1, txBuf + i, len - i);
             txBuf[i + 1] = NUL;
             ++len;
@@ -120,7 +120,7 @@ int receiveTcpData() {
    int rxByte = tcpClient.read();
    ++bytesIn;
 
-   if( sessionTelnetType != NO_TELNET && rxByte == IAC ) {
+   if( sessionTelnetTypeReceive != NO_TELNET && rxByte == IAC ) {
       rxByte = tcpClient.read();
       ++bytesIn;
       if( rxByte == DM ) { // ignore data marks
@@ -160,6 +160,11 @@ int receiveTcpData() {
                         bytesOut += tcpClient.write(IAC);
                         bytesOut += tcpClient.write(WILL);
                         bytesOut += tcpClient.write(cmdByte2);
+                        switch( cmdByte2 ) {
+                           case BINARY:   // transmit binary
+                              sessionTelnetTypeSend = FAKE_TELNET;
+                              break;
+                        }
                      }
                      break;
                   case LOC:
@@ -192,6 +197,16 @@ int receiveTcpData() {
                      break;
                }
                break;
+            case DONT:
+               switch( cmdByte2 ) {
+                  case BINARY:    // ascii mode
+                     sessionTelnetTypeSend = REAL_TELNET;
+                     bytesOut += tcpClient.write(IAC);
+                     bytesOut += tcpClient.write(WILL);
+                     bytesOut += tcpClient.write(cmdByte2);
+                     break;
+               }
+               break;
             case WILL:
                // Server wants to do option, allow most
                bytesOut += tcpClient.write(IAC);
@@ -211,11 +226,24 @@ int receiveTcpData() {
                   case GMCP:        //
                      bytesOut += tcpClient.write(DONT);
                      break;
+                  case BINARY:      // transmit-binary
+                     sessionTelnetTypeReceive = FAKE_TELNET;
+                     bytesOut += tcpClient.write(DO);
+                     break;
                   default:
                      bytesOut += tcpClient.write(DO);
                      break;
                }
                bytesOut += tcpClient.write(cmdByte2);
+               break;
+            case WONT:
+               switch ( cmdByte2 ) {
+                  case BINARY:      // ascii
+                  sessionTelnetTypeReceive = REAL_TELNET;
+                  bytesOut += tcpClient.write(IAC);
+                  bytesOut += tcpClient.write(WONT);
+                  bytesOut += tcpClient.write(cmdByte2);
+               }
                break;
             case SB:
                switch( cmdByte2 ) {
@@ -255,7 +283,7 @@ int receiveTcpData() {
    }
    // Telnet sends <CR> as <CR><NUL>
    // We filter out that <NUL> here
-   if( lastc == CR && (char)rxByte == 0 && sessionTelnetType == REAL_TELNET ) {
+   if( lastc == CR && (char)rxByte == 0 && sessionTelnetTypeReceive == REAL_TELNET ) {
       rxByte = -1;
    }
    lastc = (char)rxByte;
@@ -347,7 +375,8 @@ void sendResult(int resultCode) {
       memset(atCmd, 0, sizeof atCmd);
    }
    if( resultCode == R_NO_CARRIER || resultCode == R_NO_ANSWER ) {
-      sessionTelnetType = settings.telnet;
+      sessionTelnetTypeSend = settings.telnet;
+      sessionTelnetTypeReceive = settings.telnet;
    }
 }
 

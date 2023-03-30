@@ -15,6 +15,12 @@ char *answerCall(char *atCmd) {
       tcpClient.write(IAC);
       tcpClient.write(WONT);
       tcpClient.write(LINEMODE);
+      tcpClient.write(IAC);
+      tcpClient.write(settings.telnet == FAKE_TELNET ? WILL : WONT);
+      tcpClient.write(BINARY);
+      tcpClient.write(IAC);
+      tcpClient.write(settings.telnet == FAKE_TELNET ? DO : DONT);
+      tcpClient.write(BINARY);
    }
    sendResult(R_RING_IP);
    delay(1000);
@@ -154,21 +160,22 @@ char *dialNumber(char *atCmd) {
       }
    }
 
-   sessionTelnetType = settings.telnet;
+   sessionTelnetTypeSend = settings.telnet;
    switch( host[0] ) {
       case '-':
          ++host;
-         sessionTelnetType = NO_TELNET;
+         sessionTelnetTypeSend = NO_TELNET;
          break;
       case '=':
          ++host;
-         sessionTelnetType = REAL_TELNET;
+         sessionTelnetTypeSend = REAL_TELNET;
          break;
       case '+':
          ++host;
-         sessionTelnetType = FAKE_TELNET;
+         sessionTelnetTypeSend = FAKE_TELNET;
          break;
    }
+   sessionTelnetTypeReceive = sessionTelnetTypeSend;
 
    yield();
    if( !settings.quiet && settings.extendedCodes ) {

@@ -61,7 +61,8 @@
    uint8_t  passwordTries = 0;   // # of unsuccessful tries at incoming password
    uint8_t  passwordLen = 0;
    uint8_t  txBuf[TX_BUF_SIZE];  // Transmit Buffer
-   uint8_t  sessionTelnetType;
+   uint8_t  sessionTelnetTypeSend;
+   uint8_t  sessionTelnetTypeReceive;
    bool     amClient = true;     // true if we've dialled out, rather than been dialled into
 
    const int TILP_D0 = 1; // GPIO1 = TX
