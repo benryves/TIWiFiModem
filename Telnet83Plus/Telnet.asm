@@ -1856,7 +1856,7 @@ check_seqlp:
         dec     c               ; are we out of characters to read?
         jr      z, check_out_of_seq
      call    catchup         ; *-* LINK CHECK *+*
-        push    bc
+        
         ld      a, (ix)
         or      a
         jr      nz, check_norm
@@ -1864,17 +1864,26 @@ check_seqlp:
 check_digit:
         ld      a, (hl)
         cp      '0'
-        jr      c, check_bad
+        jr      c, check_not_digit
         cp      '9'+1
-        jr      nc, check_bad
-        
+        jr      c, check_digits
+
+check_not_digit:
+        ; expected a digit, didn't get one
+        ; could be implicit 0, e.g. in ^[[;f for ^[[<y>;<x>f
+        ld      a, b
+        or      a
+        jr      z, check_bad
+        dec     b
+        inc     ix
+        ld      a, (ix)
+        jr      check_norm
+
 check_digits:
         
         inc     hl
-        pop     bc
         dec     c
         jr      z, check_out_of_seq
-        push    bc
         
         ld      a, (hl)
         cp      '0'
@@ -1886,9 +1895,7 @@ check_digits:
 
 check_digit_ended:
         dec     hl
-        pop     bc
         inc     c
-        push    bc
         jr      check_ok
 
 check_norm:
@@ -1898,7 +1905,6 @@ check_norm:
 check_ok:
         inc     hl
         inc     ix
-        pop     bc
         djnz    check_seqlp
         
         ld      hl, check_return_from
@@ -1919,7 +1925,6 @@ check_return_from:
         ret
 
 check_bad:
-        pop     bc
         xor     a
         ret
 
@@ -1932,11 +1937,8 @@ check_out_of_seq:
 ;-----------+----------------------------------------------------+----------+
 ;i've never had more fun programming...
 
-vt100cursorleftpress:
-        ld      b, 1
-        jr      vtcurleft
 vt100cursorleft:
-        call    getparam
+        call    getparam_zer1
 vtcurleft:
         ld      a, (curx)
         sub     b
@@ -1944,11 +1946,8 @@ vtcurleft:
         ld      (curx), a
         jp      cursor_moved
 
-vt100cursorrightpress:
-        ld      b, 1
-        jr      vtcurright
 vt100cursorright:
-        call    getparam
+        call    getparam_zer1
 vtcurright:
         ld      a, (wrap)
         dec     a
@@ -1959,11 +1958,8 @@ vtcurright:
         ld      (curx), a
         jp      cursor_moved
 
-vt100cursoruppress:
-        ld      b, 1
-        jr      vtcurup
 vt100cursorup:
-        call    getparam
+        call    getparam_zer1
 vtcurup:
         ld      a, (pcury)
         sub     b
@@ -1971,11 +1967,8 @@ vtcurup:
         ld      (pcury), a
         jp      cursor_moved
 
-vt100cursordownpress:
-        ld      b, 1
-        jr      vtcurdown
 vt100cursordown:
-        call    getparam
+        call    getparam_zer1
 vtcurdown:
         ld      c, 25-1
         ld      a, (pcury)
@@ -1989,11 +1982,11 @@ vt100cursorreset:
         ld      b, 1
         jr      vt_gotoxy
 vt100changecursor:
-        call    getparam
+        call    getparam_zer1
         ld      a, b
         ld      c, a
         inc     hl
-        call    getparam
+        call    getparam_zer1
 vt_gotoxy:
         ld      a, c
         ld      d, a
@@ -2040,13 +2033,16 @@ vt100erasecursorend:
         ret
 
 vt100setscrolling:
-        call    getparam
+        call    getparam_zer1
         dec     a
         cp      24
         ret     nc
         ld      (n), a
         inc     hl
         call    getparam
+        jr      c, vt100setscroll_bottom
+        ld      a, 25
+vt100setscroll_bottom:
         dec     a
         cp      24
         ret     nc
@@ -2061,7 +2057,7 @@ vt100ss1:
         ld      (scr_top), a
         ld      a, (n2)
         ld      (scr_bot), a
-        ret
+        jr      vt100cursorreset
 
 vt100storecoords:
 vt100restorecoords:
@@ -2095,10 +2091,6 @@ vteel_lp:
 vt100erasecursor:
         ret
 
-vt100cursorstyle0:
-        xor     a
-        ld      (curattr), a
-        ret
 vt100cursorstyle1:
         ld      b, 1
         jr      vt100applycursorstyles
@@ -2163,6 +2155,13 @@ vt102localechoon:
 
 getparam: ; benryves: now supports values with multiple digits
         ld      b, 0
+        
+        ld      a, (hl)
+        cp      '0'
+        jr      c, getparam_empty
+        cp      '9'+1
+        jr      nc, getparam_empty
+        
 getparamlp:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (hl)
@@ -2176,7 +2175,9 @@ getparamlp:
         jr      c, getparam_end
         cp      '9'+1
         jr      nc, getparam_end
-        
+
+      call    catchup         ; *-* LINK CHECK *+*
+
         ; we have another digit after the current one, so multiply what we have so far by 10
         ld      a, b
         add     a, a
@@ -2189,7 +2190,26 @@ getparamlp:
         
 getparam_end:
         ld      a, b
+        scf
         ret
+
+getparam_empty:
+        xor     a           ; rcf
+        ret
+
+getparam_def1:              ; getparam, but if value is missing return 1 instead of 0.
+        call    getparam
+        ret     c
+getparam_1:
+        inc     a
+        inc     b
+        ret
+
+getparam_zer1:              ; getparam, but if value is missing or 0 return 1 instead of 0.
+        call    getparam
+        or      a
+        ret     nz
+        jr      getparam_1
         
 under0:
         ret     nc
@@ -2329,8 +2349,6 @@ keypad_table5:
 ;        .db  14, 15, 16, 17, 18        .db  19, 20, 21, 22, 23
 ;        .db  24, 25, 26, 27, 29        .db   0,')',';','?','='
 
-
-_blackstamp     .db 255,255,255,255,255,255,255,255
 
 signon
         .db "TELNET 83 v1.6", 0
@@ -2494,27 +2512,19 @@ data_s      = sdata_s + tdata_s
 vt100table:
     .db $03,'[',$00,'D'
     .dw vt100cursorleft
-    .db $02,'[','D'
-    .dw vt100cursorleftpress
     .db $03,'[',$00,'C'
     .dw vt100cursorright
-    .db $02,'[','C'
-    .dw vt100cursorrightpress
     .db $03,'[',$00,'A'
     .dw vt100cursorup
-    .db $02,'[','A'
-    .dw vt100cursoruppress
     .db $03,'[',$00,'B'
     .dw vt100cursordown
-    .db $02,'[','B'
-    .dw vt100cursordownpress
 
     .db $02,'[','H'
     .dw vt100cursorreset
-    .db $03,'[',';','H'
-    .dw vt100cursorreset
     .db $05,'[',$00,';',$00,'H'
     .dw vt100changecursor
+    .db $02,'[','f'
+    .dw vt100cursorreset
     .db $05,'[',$00,';',$00,'f'
     .dw vt100changecursor
 
@@ -2547,8 +2557,6 @@ vt100table:
     .dw vt100eraseendline
     .db $03,'[','1','K'
     .dw vt100erasecursor
-    .db $02,'[','m'
-    .dw vt100cursorstyle0                       ;vt100cursorstyle
     .db $03,'[',$00,'m'
     .dw vt100cursorstyle1                       ;vt100cursorstyle
     .db $05,'[',$00,';',$00,'m'
@@ -2601,9 +2609,17 @@ vt100table:
     .dw vt100timefinish
     .db $02,')','B'
     .dw vt100timefinish
-    .db $02,'(',$00
+    .db $02,'(','0'
     .dw vt100timefinish
-    .db $02,')',$00
+    .db $02,')','0'
+    .dw vt100timefinish
+    .db $02,'(','1'
+    .dw vt100timefinish
+    .db $02,')','1'
+    .dw vt100timefinish
+    .db $02,'(','2'
+    .dw vt100timefinish
+    .db $02,')','2'
     .dw vt100timefinish
     .db $01,'O'
     .dw vt100timefinish
