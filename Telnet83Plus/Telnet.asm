@@ -803,23 +803,22 @@ putchar:
         call    cursor_off
         pop     af
 
-        cp      0
+        or      a
         ret     z
-        cp      128
-        jr      c, putchar_next1
-        ld      a, 0
+        jp      p, putchar_next1
+        xor     a
 putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
         cp      10
-        jp      z, putnewline
+        jr      z, putnewline
         cp      13
-        jp      z, putreturn
+        jr      z, putreturn
         cp      8
-        jp      z, putbs
+        jr      z, putbs
         cp      7
-        jp      z, putbeep
+        jr      z, putbeep
         cp      9
-        jp      z, puttab
+        jr      z, puttab
 
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
@@ -885,6 +884,11 @@ setzero:
         ld      a, 0
         ret
 
+puttab:
+        ld      a, (curx)
+        cp      79
+        ret     z
+
 putbeep:
       call    catchup         ; *-* LINK CHECK *+*
         ld      hl, GRAPH_MEM
@@ -904,10 +908,7 @@ xorlp:
       call    catchup         ; *-* LINK CHECK *+*
         ret
 
-puttab:
-        ld      a, (curx)
-        cp      79
-        ret     z
+
 tablp:
       call    catchup         ; *-* LINK CHECK *+*
         ld      b, a
@@ -1036,7 +1037,7 @@ r_neglp:
 r_normal2:
         ld      ix, (rptr)
         ld      a, (rtype)
-        cp      0
+        or      a
         jr      z, rbnoff
         jr      rbyoff
 rbnoff:
@@ -2067,9 +2068,14 @@ vt100reverseindex:
       
         ret
 
+vt100nextline:
+        ld      a, '\r'
+        call    putchar
+        ld      a, '\n'
+        jp      putchar
+
 vt100storecoords:
 vt100restorecoords:
-vt100nextline:
 vt100eraseline:
         ret
 

@@ -35,9 +35,11 @@ benryves@benryves.com
   underlined text no longer clears the previous inverted text).
 - more robust handling of arguments in escape sequences including default
   options or numbers with multiple digits.
-- implemented VT100 scroll up/down sequences ^]M and ^]D.
 - beep (BEL) now properly flashes the screen.
-- reset back to initial state with [ON]+[CLEAR] or with VT100 ^]c.
+- reset back to initial state with [ON]+[CLEAR] or with VT100 ^[c.
+- implemented more VT100 sequences, including:
+  - IND (scroll up, ^[M) and RI (scroll down, ^[D).
+  - NEL (new line, ^[E).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
