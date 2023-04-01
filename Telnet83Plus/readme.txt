@@ -48,6 +48,7 @@ benryves@benryves.com
     report VT100).
   - DSR (device status report, ^[[5n).
   - CPR (cursor position report, ^[[6n).
+  - DECSC (save cursor, ^[7) and DECRC (restore cursor, ^[8).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

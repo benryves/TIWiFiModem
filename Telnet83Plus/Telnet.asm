@@ -2112,8 +2112,26 @@ scrolldown:
       
         ret
 
-vt100storecoords:
-vt100restorecoords:
+vt100storecoords:               ; DECSC ^[7 : save cursor
+        ld      hl, (curx)
+        ld      de, (scurx)
+        ld      (scurx), hl
+        ld      a, (curattr)
+        ld      (scurattr), a
+        or      a
+        sbc     hl, de
+        jp      nz, cursor_moved
+        ret
+        
+vt100restorecoords:             ; DECRC ^[8 : restore cursor
+        ld      hl, (scurx)
+        ld      de, (curx)
+        ld      (curx), hl
+        ld      a, (scurattr)
+        ld      (curattr), a
+        or      a
+        sbc     hl, de
+        jp      nz, cursor_moved
         ret
         
 vt100eraseline:					; EL ^[[2K : erase complete line
@@ -2600,15 +2618,19 @@ wrap        = shift + 1         ; .db     80
 
 curx        = wrap + 1          ; .db     0       ; - Cursor position (in characters)
 pcury       = curx + 1          ; .db     8       ; /
-sx          = pcury + 1         ; .db     0       ; - Screen position (in characters)
+curattr     = pcury + 1         ; .db     0       ; cursor attributes (bold, inverse, etc)
+
+scurx       = curattr + 1       ; .db     0       ; - Saved cursor position
+scury       = scurx + 1         ; .db     0       ; /
+scurattr    = scury + 1         ; .db     0       ; saved cursor attributes
+
+sx          = scurattr + 1      ; .db     0       ; - Screen position (in characters)
 sy          = sx + 1            ; .db     0       ; /
 
 scr_top     = sy + 1            ; .db     0       ; top of scrolling region
 scr_bot     = scr_top + 1       ; .db     23      ; bottom of scrolling region
 
-curattr     = scr_bot + 1       ; .db     0       ; cursor attributes (bold, inverse, etc)
-
-mm_mode     = curattr + 1       ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
+mm_mode     = scr_bot + 1       ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
 
 local_echo  = mm_mode + 1       ; .db     0
 
@@ -2650,8 +2672,6 @@ n2          = n + 2             ; .dw     0       ; temp var
 seqbuf      = n2 + 2            ; .db     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 seqbuf_s    = 20
 in_seq      = seqbuf + seqbuf_s ; .db     0
-;scurx   .db     0
-;scury   .db     0
 
 ; backup of register SP
 ;spbackup .dw    0
@@ -2707,9 +2727,9 @@ vt100table:
     .dw vt100setscrolling
     
     .db $01,'7'
-    .dw vt100storecoords                        ; ignored
+    .dw vt100storecoords
     .db $01,'8'
-    .dw vt100restorecoords                      ; ignored
+    .dw vt100restorecoords
     .db $01,'D'
     .dw vt100index
     .db $01,'M'
