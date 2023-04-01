@@ -104,30 +104,8 @@ start:
         ld      de, buffers
         bcall(_InsertMem)
         
-        ; clear buffers
-        ld      a, ' '
-        ld      (de), a
-        push    de
-        pop     hl
-        inc     de
-        ld      bc, buffers_s - 1
-        ldir
-        
-        ; clear data
-        ld      hl, data
-        ld      de, data + 1
-        ld      bc, data_s - 1
-        ld      (hl), 0
-        ldir
-        
-        ; set certain non-zero variables
-        ld      a, 80
-        ld      (wrap), a
-        ld      a, 23
-        ld      (scr_bot), a
-        ld      a, 1
-        ld      (mm_mode), a
-        ld      (autoscroll), a
+        ; reset the terminal
+        call    vt100reset
         
         ; default sign-on message
         ld      hl, signon
@@ -175,10 +153,6 @@ signon_end:
     ;*****Using getcsc instead of getk, b/c getk is aka poop
         bcall(_getcsc)          ;        call    READKEY         ; Clear out the keypad buffer
 ;        ld      (spbackup), sp  ; backup the stack (for use with quitting) (quittoshell)
-
-
-        call    buildtable      ; build the font table
-        call    recv_init       ; benryves: initialise the receive buffer
 
 mainloop:
       call    catchup         ; *-* LINK CHECK *+*
@@ -232,8 +206,11 @@ no_directarrow:
         ; ON is held, so use alternate functions
         bcall(_getcsc)
         
-        cp      skYEqu          ; [Y=]
+        cp      skYEqu
         call    z, setlocalecho ; local echo toggle
+        
+        cp      skClear
+        call    z, vt100reset
         
         jr      no_key
 
@@ -2158,6 +2135,37 @@ vt100cursorstylebits:
         ld      (curattr), a
         ret
 
+vt100reset:
+        
+        ; clear buffers
+        ld      hl, buffers
+        ld      de, buffers + 1
+        ld      bc, buffers_s - 1
+        ld      (hl), ' '
+        ldir
+        
+        ; clear data
+        ld      hl, data
+        ld      de, data + 1
+        ld      bc, data_s - 1
+        ld      (hl), 0
+        ldir
+        
+        ; set certain non-zero variables
+        ld      a, 80
+        ld      (wrap), a
+        ld      a, 23
+        ld      (scr_bot), a
+        ld      a, 1
+        ld      (mm_mode), a
+        ld      (autoscroll), a
+
+        call    buildtable      ; build the font table
+        call    recv_init       ; benryves: initialise the receive buffer
+
+        xor     a
+        ret
+
 vt100settab:
 vt100cleartab:
 ;vt100cleartab:
@@ -2165,7 +2173,6 @@ vt100clearalltabs:
 vt100statusrep:
 vt100whatareyou:
 ;vt100whatareyou:
-vt100reset:
 vt100cursorreport:
 
 vt100timefinish:
@@ -2609,7 +2616,7 @@ vt100table:
     .db $03,'[','0','c'
     .dw vt100whatareyou                         ; ignored
     .db $01,'c'
-    .dw vt100reset                              ; ignored
+    .dw vt100reset
     .db $03,'[','6','n'
     .dw vt100cursorreport                       ; ignored
 

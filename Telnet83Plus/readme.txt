@@ -33,6 +33,11 @@ benryves@benryves.com
   escape sequences.
 - character attributes are combined (e.g. setting inverse text then setting
   underlined text no longer clears the previous inverted text).
+- more robust handling of arguments in escape sequences including default
+  options or numbers with multiple digits.
+- implemented VT100 scroll up/down sequences ^]M and ^]D.
+- beep (BEL) now properly flashes the screen.
+- reset back to initial state with [ON]+[CLEAR] or with VT100 ^]c.
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
@@ -134,21 +139,22 @@ How to type all those keys from your keyboard on the dinky TI-83+ keypad
 ------------------------------------------------------------------------
 The controls for Telnet83 are:
 
-Graph   = Quit
-Clear   = Clears the screen
-Arrows  = Scroll
-2nd     = numeric mode
-Alpha   = capital mode
-Mode    = Extra mode
-X       = Ctrl mode
-DEL     = BackSpace
-STAT    = ESC
-VARS    = TAB
-ZOOM    = jump the viewport to the far left
-WINDOW  = scroll the viewport to bring the cursor into view
-TRACE   = toggle minimap mode
-Y=      = Word Wrap toggle (useful when using irc -d)
-ON+Y=   = local echo toggle
+Graph    = Quit
+Clear    = Clears the screen
+ON+Clear = clears and resets the console to initial state
+Arrows   = Scroll
+2nd      = numeric mode
+Alpha    = capital mode
+Mode     = Extra mode
+X        = Ctrl mode
+DEL      = BackSpace
+STAT     = ESC
+VARS     = TAB
+ZOOM     = jump the viewport to the far left
+WINDOW   = scroll the viewport to bring the cursor into view
+TRACE    = toggle minimap mode
+Y=       = Word Wrap toggle (useful when using irc -d)
+ON+Y=    = local echo toggle
 
 In order to fit all the keys onto the TI-83+ keypad, I split up the keypad
 into 5 modes: Normal, Numeric, Capital, Extra, and Ctrl.  To go into these
