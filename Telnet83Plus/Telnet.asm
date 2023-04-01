@@ -880,7 +880,7 @@ putnewline:
         ld      c, a
         ld      a, (pcury)
         cp      c
-        jr      nc, putscroll
+        jp      nc, vt100index  ; scroll down
 
         inc     a
         ld      (pcury), a
@@ -896,67 +896,6 @@ putbs:
         dec     a
         ld      (curx), a
         jp      cursor_moved
-putscroll:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (scr_top)
-        ld      c, a
-        ld      b, 80
-        call    mul
-        ld      hl, term
-        add     hl, bc
-        ld      (n), hl
-
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      hl, (n)
-        ld      bc, 80
-        add     hl, bc
-        ld      (n2), hl
-
-        ld      de, (n)
-        ld      hl, (n2)
-
-        ld      a, (scr_top)
-        ld      b, a
-        ld      a, (scr_bot)
-        sub     b
-        ld      b, a
-        ld      c, 80
-      call    catchup         ; *-* LINK CHECK *+*
-        call    mul
-      call    catchup         ; *-* LINK CHECK *+*
-
-        ldir
-
-        ;ld      de, term
-        ;ld      hl, term + 80
-        ;ld      bc, 1920 - 80
-        ;ldir
-
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      hl, term
-        ld      a, (scr_bot)
-        ld      b, a
-        ld      c, 80
-        call    mul
-        add     hl, bc
-        ld      (n), hl
-
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, ' '
-        ld      de, (n)
-        ld      (de), a
-        push    de
-        pop     hl
-        inc     de
-        ld      bc, 80 - 1
-        ldir
-
-      call    catchup         ; *-* LINK CHECK *+*
-        ;ld      de, term + 1920 - 80
-        ;ld      hl, whitespace
-        ;ld      bc, 80
-        ;ldir
-        ret
 putcr:
       call    catchup         ; *-* LINK CHECK *+*
         call    putreturn
@@ -2059,10 +1998,58 @@ vt100ss1:
         ld      (scr_bot), a
         jr      vt100cursorreset
 
+vt100index:
+      call    catchup         ; *-* LINK CHECK *+*
+        
+        ld      a, (scr_top)
+        ld      c, a
+        ld      b, 80
+        call    mul
+      
+      call    catchup         ; *-* LINK CHECK *+*
+        
+        ld      hl, term
+        add     hl, bc
+        
+        ld      d, h
+        ld      e, l
+        ld      bc, 80
+        add     hl, bc
+        
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        ld      a, (scr_top)
+        ld      b, a
+        ld      a, (scr_bot)
+        sub     b
+        ret     z
+        ld      b, a
+        ld      c, 80
+        
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        call    mul
+      
+      call    catchup         ; *-* LINK CHECK *+*
+        ldir
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        push    de
+        pop     hl
+        inc     de
+        ld      (hl), ' '
+        ld      bc, 80 - 1
+        ldir
+
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        ret
+        
+vt100reverseindex:
+        ret
+
 vt100storecoords:
 vt100restorecoords:
-vt100index:
-vt100reverseindex:
 vt100nextline:
 vt100eraseline:
         ret
@@ -2530,32 +2517,32 @@ vt100table:
     .db $03,'[','2','J'
     .dw vt100entirescreen
     .db $03,'[','1','J'
-    .dw vt100erasebegcursor						; ignored
+    .dw vt100erasebegcursor                     ; ignored
     .db $02,'[','J'
-    .dw vt100erasecursorend						; ignored
+    .dw vt100erasecursorend                     ; ignored
     .db $03,'[','0','J'
-    .dw vt100erasecursorend						; ignored
+    .dw vt100erasecursorend                     ; ignored
     .db $05,'[',$00,';',$00,'r'
     .dw vt100setscrolling
     
     .db $01,'7'
-    .dw vt100storecoords						; ignored
+    .dw vt100storecoords                        ; ignored
     .db $01,'8'
-    .dw vt100restorecoords						; ignored
+    .dw vt100restorecoords                      ; ignored
     .db $01,'D'
     .dw vt100index
     .db $01,'M'
-    .dw vt100reverseindex
+    .dw vt100reverseindex                       ; ignored
     .db $01,'E'
-    .dw vt100nextline							; ignored
+.dw vt100nextline                               ; ignored
     .db $03,'[','2','K'
-    .dw vt100eraseline                         	; ignored
+    .dw vt100eraseline                          ; ignored
     .db $02,'[','K'
     .dw vt100eraseendline
     .db $03,'[','0','K'
     .dw vt100eraseendline
     .db $03,'[','1','K'
-    .dw vt100erasecursor						; ignored
+    .dw vt100erasecursor                        ; ignored
     .db $03,'[',$00,'m'
     .dw vt100cursorstyle1                       ;vt100cursorstyle
     .db $05,'[',$00,';',$00,'m'
@@ -2566,23 +2553,23 @@ vt100table:
     .dw vt100cursorstyle4                       ;vt100cursorstyle
 
     .db $01,'H'
-    .dw vt100settab								; ignored
+    .dw vt100settab                             ; ignored
     .db $02,'[','g'
-    .dw vt100cleartab							; ignored
+    .dw vt100cleartab                           ; ignored
     .db $03,'[','0','g'
-    .dw vt100cleartab							; ignored
+    .dw vt100cleartab                           ; ignored
     .db $03,'[','3','g'
-    .dw vt100clearalltabs						; ignored
+    .dw vt100clearalltabs                       ; ignored
     .db $03,'[','5','n'
-    .dw vt100statusrep							; ignored
+    .dw vt100statusrep                          ; ignored
     .db $02,'[','c'
-    .dw vt100whatareyou							; ignored
+    .dw vt100whatareyou                         ; ignored
     .db $03,'[','0','c'
-    .dw vt100whatareyou							; ignored
+    .dw vt100whatareyou                         ; ignored
     .db $01,'c'
-    .dw vt100reset								; ignored
+    .dw vt100reset                              ; ignored
     .db $03,'[','6','n'
-    .dw vt100cursorreport						; ignored
+    .dw vt100cursorreport                       ; ignored
 
     ; benryves: VT102 extensions
     .db $04,'[','1','2','h'
