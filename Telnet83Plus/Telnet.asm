@@ -524,8 +524,7 @@ send_vt100_right:
 send_vt100_arrow:
         push    af
       call    catchup         ; *-* LINK CHECK *+*
-        ld      a, ESC
-        call    sendbyte
+        call    sendesc
         ld      a, '['
         call    sendbyte
         pop     af
@@ -1961,7 +1960,7 @@ vt100ss1:
         ld      (scr_bot), a
         jr      vt100cursorreset
 
-vt100erasecursorend:            ; ED ^[J or ^[0J : erase from cursor to end of screen
+vt100erasecursorend:            ; ED ^[[J or ^[[0J : erase from cursor to end of screen
         call    cursor_off
         call    getxy
 
@@ -1977,7 +1976,7 @@ vt100erasecursorend:            ; ED ^[J or ^[0J : erase from cursor to end of s
         pop     hl
         jr      vtclearlp
 
-vt100erasebegcursor:            ; ED ^[1J : erase from beginning of display to cursor
+vt100erasebegcursor:            ; ED ^[[1J : erase from beginning of display to cursor
         call    cursor_off
         call    getxy
 
@@ -1990,7 +1989,7 @@ vt100erasebegcursor:            ; ED ^[1J : erase from beginning of display to c
         ld      hl, term
         jr      vtclearlp
 
-vt100entirescreen:              ; ED ^[2J : erase entire screen
+vt100entirescreen:              ; ED ^[[2J : erase entire screen
         call    cursor_off
         ld      hl, term
         ld      bc, term_s
@@ -2117,7 +2116,7 @@ vt100storecoords:
 vt100restorecoords:
         ret
         
-vt100eraseline:
+vt100eraseline:					; EL ^[[2K : erase complete line
         ld      a, (curx)
         push    af
         xor     a
@@ -2127,7 +2126,7 @@ vt100eraseline:
         ld      (curx), a
         ret
 
-vt100eraseendline:
+vt100eraseendline:				; EL ^[[K or ^[[0K : erase from cursor to end of line
         call    cursor_off
         call    getxy
         ld      a, (curx)
@@ -2147,7 +2146,7 @@ vteel_lp:
         djnz    vteel_lp
         ret
 
-vt100erasecursor:
+vt100erasecursor:				; EL ^[[1K : erase from start of line to cursor
         call    cursor_off
         call    getxy
         ld      a, (curx)
@@ -2251,12 +2250,22 @@ vt100cleartab:
 ;vt100cleartab:
 vt100clearalltabs:
 vt100statusrep:
-vt100whatareyou:
-;vt100whatareyou:
 vt100cursorreport:
 
 vt100timefinish:
         ret
+
+vt100whatareyou:				; DA (device attributes) ^[[c or ^[[0c, DECID (identify terminal) ^[Z
+		; possible responses:
+		; VT100: ^[[?1;0c
+		; VT102: ^[[?6c
+		; VT220: ^[[?62;0c
+		; VT320: ^[[?63;0c
+        ld		hl, vt100attributes
+		ld		b,  6
+        jp      sendescseq
+vt100attributes:
+		.db		"[?1;0c"
 
 vt102localechooff:
         xor    a
@@ -2693,9 +2702,11 @@ vt100table:
     .db $03,'[','5','n'
     .dw vt100statusrep                          ; ignored
     .db $02,'[','c'
-    .dw vt100whatareyou                         ; ignored
+    .dw vt100whatareyou
     .db $03,'[','0','c'
-    .dw vt100whatareyou                         ; ignored
+    .dw vt100whatareyou
+	.db $01,'Z'
+    .dw vt100whatareyou
     .db $01,'c'
     .dw vt100reset
     .db $03,'[','6','n'

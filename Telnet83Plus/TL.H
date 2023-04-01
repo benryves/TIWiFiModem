@@ -27,6 +27,17 @@ check_recv:
         sbc     hl, bc
         ret
 
+sendescseq:
+        call    sendesc
+sendseq:
+        ld      a, (hl)
+        inc     hl
+        call    sendbyte
+        djnz    sendseq
+        ret
+
+sendesc:
+        ld      a, ESC
 sendbyte:
         push    af
         ld      a, (local_echo)

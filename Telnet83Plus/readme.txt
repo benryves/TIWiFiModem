@@ -39,11 +39,13 @@ benryves@benryves.com
 - beep (BEL) now properly flashes the screen.
 - reset back to initial state with [ON]+[CLEAR] or with VT100 ^[c.
 - implemented more VT100 sequences, including:
-  - IND (scroll up, ^[M) and RI (scroll down, ^[D).
+  - IND (scroll up, ^[D) and RI (scroll down, ^[M).
   - NEL (new line, ^[E).
-  - EL (^[1K erases from start of line to cursor, ^[2K erases whole line).
-  - ED (^[J or ^[0J erases from start of screen to cursor, ^[1J erases from
+  - EL (^[[1K erases from start of line to cursor, ^[[2K erases whole line).
+  - ED (^[[J or ^[[0J erases from start of screen to cursor, ^[[1J erases from
     cursor to end of screen).
+  - DA (device attributes, ^[[c or ^[[0c) and DECID (identify terminal, ^[Z
+    report VT100).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
