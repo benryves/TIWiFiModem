@@ -222,7 +222,7 @@ no_on_held:
         cp      skGraph         ;        cp      15h
         jp      z, exit         ; quit
         cp      skClear         ;        cp      45h
-        call    z, vt100entirescreen
+        call    z, vt100entirescreenhome
         cp      skZoom          ;        cp      13h
         call    z, jumphome     ; zoom to the left edge [ZOOM] button
         cp      skWindow        ; benryves:
@@ -1930,6 +1930,13 @@ vt_gotoxy:
         ld      (pcury), a
         jp      cursor_moved
 
+vt100entirescreenhome:
+        call    vt100entirescreen
+        xor     a
+        ld      (curx), a
+        ld      (pcury), a ; benryves: was (cury)
+        jp      cursor_moved
+        
 vt100entirescreen:
         call    cursor_off
         ld      hl, term
@@ -1943,11 +1950,8 @@ vtclearlp:
         ld      a, b
         or      c
         jr      nz, vtclearlp
-        xor     a
-        ld      (curx), a
-        ld      (pcury), a ; benryves: was (cury)
-        jp      cursor_moved
-
+        ret
+        
 vt100erasebegcursor:
 vt100erasecursorend:
         ret
@@ -2601,6 +2605,7 @@ vt100table:
     .dw vt100erasecursorend                     ; ignored
     .db $03,'[','0','J'
     .dw vt100erasecursorend                     ; ignored
+    
     .db $05,'[',$00,';',$00,'r'
     .dw vt100setscrolling
     
