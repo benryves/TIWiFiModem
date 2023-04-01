@@ -851,18 +851,20 @@ putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
         jp      cursor_moved
 
+vt100index:
 putnewline:
         ld      a, (scr_bot)
         ld      c, a
         ld      a, (pcury)
         cp      c
-        jp      nc, vt100index  ; scroll down
+        jp      nc, scrollup
 
         inc     a
         ld      (pcury), a
         jp      cursor_moved
+
 putreturn:
-        ld      a, 0
+        xor     a
         ld      (curx), a
         jp      cursor_moved
 putbs:
@@ -872,6 +874,8 @@ putbs:
         dec     a
         ld      (curx), a
         jp      cursor_moved
+
+vt100nextline:
 putcr:
       call    catchup         ; *-* LINK CHECK *+*
         call    putreturn
@@ -1974,7 +1978,7 @@ vt100ss1:
         ld      (scr_bot), a
         jr      vt100cursorreset
 
-vt100index:
+scrollup:
       call    catchup         ; *-* LINK CHECK *+*
         
         ld      a, (scr_top)
@@ -2022,6 +2026,19 @@ vt100index:
         ret
         
 vt100reverseindex:
+
+        ld      a, (pcury)
+        ld      c, a
+        ld      a, (scr_top)
+        cp      c
+        jr      nc, scrolldown
+
+        ld      a, c
+        dec     a
+        ld      (pcury), a
+        jp      cursor_moved
+
+scrolldown:
       call    catchup         ; *-* LINK CHECK *+*
         
         ld      a, (scr_bot)
@@ -2067,12 +2084,6 @@ vt100reverseindex:
       call    catchup         ; *-* LINK CHECK *+*
       
         ret
-
-vt100nextline:
-        ld      a, '\r'
-        call    putchar
-        ld      a, '\n'
-        jp      putchar
 
 vt100storecoords:
 vt100restorecoords:
@@ -2589,7 +2600,7 @@ vt100table:
     .db $01,'M'
     .dw vt100reverseindex
     .db $01,'E'
-    .dw vt100nextline                           ; ignored
+    .dw vt100nextline
     .db $03,'[','2','K'
     .dw vt100eraseline                          ; ignored
     .db $02,'[','K'
