@@ -41,6 +41,7 @@ benryves@benryves.com
 - implemented more VT100 sequences, including:
   - IND (scroll up, ^[M) and RI (scroll down, ^[D).
   - NEL (new line, ^[E).
+  - EL (^[1K erases from start of line to cursor, ^[2K erases whole line).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

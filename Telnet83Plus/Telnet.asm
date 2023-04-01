@@ -2092,10 +2092,20 @@ scrolldown:
 
 vt100storecoords:
 vt100restorecoords:
+        ret
+        
 vt100eraseline:
+        ld      a, (curx)
+        push    af
+        xor     a
+        ld      (curx), a
+        call    vt100eraseendline
+        pop     af
+        ld      (curx), a
         ret
 
 vt100eraseendline:
+        call    cursor_off
         call    getxy
         ld      a, (curx)
         ld      b, a
@@ -2114,8 +2124,21 @@ vteel_lp:
         djnz    vteel_lp
         ret
 
-;vt100eraseendline:
 vt100erasecursor:
+        call    cursor_off
+        call    getxy
+        ld      a, (curx)
+        ld      b, a
+        inc     b
+
+        ld      d, 32
+        ld      a, (curattr)
+        and     %10000000
+        or      d           ; benryves: treat curattr as bitmask
+vtec_lp:
+        ld      (hl), a
+        dec     hl
+        djnz    vtec_lp
         ret
 
 vt100cursorstyle1:
@@ -2626,7 +2649,7 @@ vt100table:
     .db $03,'[','0','K'
     .dw vt100eraseendline
     .db $03,'[','1','K'
-    .dw vt100erasecursor                        ; ignored
+    .dw vt100erasecursor
     .db $03,'[',$00,'m'
     .dw vt100cursorstyle1                       ;vt100cursorstyle
     .db $05,'[',$00,';',$00,'m'
