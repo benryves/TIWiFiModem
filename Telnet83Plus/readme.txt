@@ -42,6 +42,8 @@ benryves@benryves.com
   - IND (scroll up, ^[M) and RI (scroll down, ^[D).
   - NEL (new line, ^[E).
   - EL (^[1K erases from start of line to cursor, ^[2K erases whole line).
+  - ED (^[J or ^[0J erases from start of screen to cursor, ^[1J erases from
+    cursor to end of screen).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

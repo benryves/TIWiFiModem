@@ -1898,6 +1898,10 @@ vtcurdown:
         ld      (pcury), a
         jp      cursor_moved
 
+vt100entirescreenhome:
+        call    vt100entirescreen
+        ; fall-through
+
 vt100cursorreset:
         ld      c, 1
         ld      b, 1
@@ -1930,32 +1934,6 @@ vt_gotoxy:
         ld      (pcury), a
         jp      cursor_moved
 
-vt100entirescreenhome:
-        call    vt100entirescreen
-        xor     a
-        ld      (curx), a
-        ld      (pcury), a ; benryves: was (cury)
-        jp      cursor_moved
-        
-vt100entirescreen:
-        call    cursor_off
-        ld      hl, term
-        ld      bc, 2000
-vtclearlp:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, ' '
-        ld      (hl), a
-        inc     hl
-        dec     bc
-        ld      a, b
-        or      c
-        jr      nz, vtclearlp
-        ret
-        
-vt100erasebegcursor:
-vt100erasecursorend:
-        ret
-
 vt100setscrolling:
         call    getparam_zer1
         dec     a
@@ -1982,6 +1960,51 @@ vt100ss1:
         ld      a, (n2)
         ld      (scr_bot), a
         jr      vt100cursorreset
+
+vt100erasecursorend:            ; ED ^[J or ^[0J : erase from cursor to end of screen
+        call    cursor_off
+        call    getxy
+
+      call    catchup         ; *-* LINK CHECK *+*
+        
+        push    hl
+        ld      de, term + term_s - 1
+        ex      de, hl
+        or      a
+        sbc     hl, de
+        ld      b, h
+        ld      c, l
+        pop     hl
+        jr      vtclearlp
+
+vt100erasebegcursor:            ; ED ^[1J : erase from beginning of display to cursor
+        call    cursor_off
+        call    getxy
+
+      call    catchup         ; *-* LINK CHECK *+*
+
+        ld      bc, 1 - term
+        add     hl, bc
+        ld      b, h
+        ld      c, l
+        ld      hl, term
+        jr      vtclearlp
+
+vt100entirescreen:              ; ED ^[2J : erase entire screen
+        call    cursor_off
+        ld      hl, term
+        ld      bc, term_s
+vtclearlp:
+      call    catchup         ; *-* LINK CHECK *+*
+        ld      a, ' '
+        ld      (hl), a
+        inc     hl
+        dec     bc
+        ld      a, b
+        or      c
+        jr      nz, vtclearlp
+        ret
+
 
 scrollup:
       call    catchup         ; *-* LINK CHECK *+*
@@ -2623,11 +2646,11 @@ vt100table:
     .db $03,'[','2','J'
     .dw vt100entirescreen
     .db $03,'[','1','J'
-    .dw vt100erasebegcursor                     ; ignored
+    .dw vt100erasebegcursor
     .db $02,'[','J'
-    .dw vt100erasecursorend                     ; ignored
+    .dw vt100erasecursorend
     .db $03,'[','0','J'
-    .dw vt100erasecursorend                     ; ignored
+    .dw vt100erasecursorend
     
     .db $05,'[',$00,';',$00,'r'
     .dw vt100setscrolling
@@ -2643,7 +2666,7 @@ vt100table:
     .db $01,'E'
     .dw vt100nextline
     .db $03,'[','2','K'
-    .dw vt100eraseline                          ; ignored
+    .dw vt100eraseline
     .db $02,'[','K'
     .dw vt100eraseendline
     .db $03,'[','0','K'
