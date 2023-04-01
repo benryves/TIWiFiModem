@@ -1968,7 +1968,6 @@ vtclearlp:
 
 vt100erasebegcursor:
 vt100erasecursorend:
-;vt100erasecursorend:
         ret
 
 vt100setscrolling:
@@ -2046,6 +2045,50 @@ vt100index:
         ret
         
 vt100reverseindex:
+      call    catchup         ; *-* LINK CHECK *+*
+        
+        ld      a, (scr_bot)
+        ld      c, a
+        ld      b, 80
+        call    mul
+      
+      call    catchup         ; *-* LINK CHECK *+*
+        
+        ld      hl, term + 79
+        add     hl, bc
+        
+        ld      d, h
+        ld      e, l
+        ld      bc, -80
+        add     hl, bc
+        
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        ld      a, (scr_top)
+        ld      b, a
+        ld      a, (scr_bot)
+        sub     b
+        ret     z
+        ld      b, a
+        ld      c, 80
+        
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        call    mul
+      
+      call    catchup         ; *-* LINK CHECK *+*
+        lddr
+      call    catchup         ; *-* LINK CHECK *+*
+      
+        push    de
+        pop     hl
+        dec     de
+        ld      (hl), ' '
+        ld      bc, 80 - 1 
+        lddr
+
+      call    catchup         ; *-* LINK CHECK *+*
+      
         ret
 
 vt100storecoords:
@@ -2532,9 +2575,9 @@ vt100table:
     .db $01,'D'
     .dw vt100index
     .db $01,'M'
-    .dw vt100reverseindex                       ; ignored
+    .dw vt100reverseindex
     .db $01,'E'
-.dw vt100nextline                               ; ignored
+    .dw vt100nextline                           ; ignored
     .db $03,'[','2','K'
     .dw vt100eraseline                          ; ignored
     .db $02,'[','K'
