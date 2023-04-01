@@ -2249,11 +2249,47 @@ vt100settab:
 vt100cleartab:
 ;vt100cleartab:
 vt100clearalltabs:
-vt100cursorreport:
+        ret
 
 vt100timefinish:
         ret
 
+vt100cursorreport:              ; CPR (cursor position report) ^[[6n
+    
+        ; response is ^[[<y>;<x>R
+        
+        call    sendesc
+        ld      a, '['
+        call    sendbyte
+        
+        ; send Y
+        
+        ld      a, (pcury)
+        or      a
+        jr      z, vt100cursorreport_homey
+        
+        inc     a
+        call    sendparam
+        
+vt100cursorreport_homey:
+        
+        ld      a, ';'
+        call    sendbyte
+        
+        ; send X
+        
+        ld      a, (curx)
+        or      a
+        jr      z, vt100cursorreport_homex
+        
+        inc     a
+        call    sendparam
+
+vt100cursorreport_homex:
+        
+        ld      a, 'R'
+        jp      sendbyte
+        
 vt100statusrep:					; DSR (device status report) ^[[5n
         ld      hl, vt100ready
         ld      b, 3
@@ -2716,7 +2752,7 @@ vt100table:
     .db $01,'c'
     .dw vt100reset
     .db $03,'[','6','n'
-    .dw vt100cursorreport                       ; ignored
+    .dw vt100cursorreport
 
     ; benryves: VT102 extensions
     .db $04,'[','1','2','h'

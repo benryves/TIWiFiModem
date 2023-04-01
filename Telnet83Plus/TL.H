@@ -27,6 +27,56 @@ check_recv:
         sbc     hl, bc
         ret
 
+; sends a numeric parameter in A
+sendparam:
+        push    bc
+        cp      100
+        jr      c, sendparam_under_100
+        
+sendparam_100s:
+        ld      b, '0' - 1
+sendparam_100s_lp:
+        inc     b
+        sub     100
+        jr      nc, sendparam_100s_lp
+        add     a, 100
+        
+        push    af
+        ld      a, b
+        call    sendbyte
+        pop     af
+        
+        jr      sendparam_10s
+
+sendparam_under_100:
+        
+        cp      10
+        jr      c, sendparam_under_10
+
+sendparam_10s:
+        ld      b, '0'
+        cp      10
+        jr      c, sendparam_under_10_0
+sendparam_10s_lp:
+        inc     b
+        sub     10
+        jr      nc, sendparam_10s_lp
+        add     a, 10
+        dec     b
+        
+sendparam_under_10_0:
+
+        push    af
+        ld      a, b
+        call    sendbyte
+        pop     af
+
+sendparam_under_10:
+        
+        add     a, '0'
+        pop     bc
+        jp      sendbyte
+
 sendescseq:
         call    sendesc
 sendseq:
