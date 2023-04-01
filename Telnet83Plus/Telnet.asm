@@ -2191,7 +2191,7 @@ vt100applycursorstyle:
         jr      nz, vt100notresetcursorstyle
         ld      (curattr), a
         ret
-		
+        
 vt100notresetcursorstyle:
         ld      b, %10000000
         cp      7
@@ -2207,7 +2207,7 @@ vt100cursorstyleoff:
         and     b
         ld      (curattr), a
         ret
-		
+        
 vt100cursorstyleon:
         ld      a, (curattr)
         or      b
@@ -2249,23 +2249,29 @@ vt100settab:
 vt100cleartab:
 ;vt100cleartab:
 vt100clearalltabs:
-vt100statusrep:
 vt100cursorreport:
 
 vt100timefinish:
         ret
 
+vt100statusrep:					; DSR (device status report) ^[[5n
+        ld      hl, vt100ready
+        ld      b, 3
+        jp      sendescseq
+vt100ready:
+        .db     "[0n"
+
 vt100whatareyou:				; DA (device attributes) ^[[c or ^[[0c, DECID (identify terminal) ^[Z
-		; possible responses:
-		; VT100: ^[[?1;0c
-		; VT102: ^[[?6c
-		; VT220: ^[[?62;0c
-		; VT320: ^[[?63;0c
+        ; possible responses:
+        ; VT100: ^[[?1;0c
+        ; VT102: ^[[?6c
+        ; VT220: ^[[?62;0c
+        ; VT320: ^[[?63;0c
         ld		hl, vt100attributes
-		ld		b,  6
+        ld		b,  6
         jp      sendescseq
 vt100attributes:
-		.db		"[?1;0c"
+        .db		"[?1;0c"
 
 vt102localechooff:
         xor    a
@@ -2700,12 +2706,12 @@ vt100table:
     .db $03,'[','3','g'
     .dw vt100clearalltabs                       ; ignored
     .db $03,'[','5','n'
-    .dw vt100statusrep                          ; ignored
+    .dw vt100statusrep
     .db $02,'[','c'
     .dw vt100whatareyou
     .db $03,'[','0','c'
     .dw vt100whatareyou
-	.db $01,'Z'
+    .db $01,'Z'
     .dw vt100whatareyou
     .db $01,'c'
     .dw vt100reset

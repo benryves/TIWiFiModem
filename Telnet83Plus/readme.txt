@@ -46,6 +46,7 @@ benryves@benryves.com
     cursor to end of screen).
   - DA (device attributes, ^[[c or ^[[0c) and DECID (identify terminal, ^[Z
     report VT100).
+  - DSR (device status report ^[[5n).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.
