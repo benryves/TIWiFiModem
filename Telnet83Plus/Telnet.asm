@@ -264,7 +264,7 @@ no_vtarrows:
       call    catchup         ; *-* LINK CHECK *+*
         or      a               ;        cp      0
         jr      z, no_key       ; key doesn't have an entry
-		and		%01111111		; strip MSB (hack used to allow NUL to be typed)
+        and     %01111111       ; strip MSB (hack used to allow NUL to be typed)
         push    af
         ld      a, 1
         ld      (sendstat), a   ; flag the status bar to indicate send
@@ -2139,15 +2139,27 @@ vt100applycursorstyles:
         
 vt100applycursorstyle:
         or      a
-        jr      nz, vt100combinecursorstyle
+        jr      nz, vt100notresetcursorstyle
         ld      (curattr), a
         ret
-vt100combinecursorstyle:
-        ld      a, 1
-vt100cursorstylebits:
-        add     a, a
-        djnz    vt100cursorstylebits
+		
+vt100notresetcursorstyle:
+        ld      b, %10000000
+        cp      7
+        jr      z, vt100cursorstyleon
+        cp      27
+        ret     nz
+
+vt100cursorstyleoff:
+        ld      a, b
+        cpl
         ld      b, a
+        ld      a, (curattr)
+        and     b
+        ld      (curattr), a
+        ret
+		
+vt100cursorstyleon:
         ld      a, (curattr)
         or      b
         ld      (curattr), a
