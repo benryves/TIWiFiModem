@@ -2073,7 +2073,6 @@ vt100eraseendline:
         ld      b, a
         ld      a, 80
         sub     b
-        cp      0
         ret     z
         ld      b, a
 
@@ -2531,32 +2530,32 @@ vt100table:
     .db $03,'[','2','J'
     .dw vt100entirescreen
     .db $03,'[','1','J'
-    .dw vt100erasebegcursor
+    .dw vt100erasebegcursor						; ignored
     .db $02,'[','J'
-    .dw vt100erasecursorend
+    .dw vt100erasecursorend						; ignored
     .db $03,'[','0','J'
-    .dw vt100erasecursorend
+    .dw vt100erasecursorend						; ignored
     .db $05,'[',$00,';',$00,'r'
     .dw vt100setscrolling
     
     .db $01,'7'
-    .dw vt100storecoords
+    .dw vt100storecoords						; ignored
     .db $01,'8'
-    .dw vt100restorecoords
+    .dw vt100restorecoords						; ignored
     .db $01,'D'
     .dw vt100index
     .db $01,'M'
     .dw vt100reverseindex
     .db $01,'E'
-    .dw vt100nextline
+    .dw vt100nextline							; ignored
     .db $03,'[','2','K'
-    .dw vt100eraseline
+    .dw vt100eraseline                         	; ignored
     .db $02,'[','K'
     .dw vt100eraseendline
     .db $03,'[','0','K'
     .dw vt100eraseendline
     .db $03,'[','1','K'
-    .dw vt100erasecursor
+    .dw vt100erasecursor						; ignored
     .db $03,'[',$00,'m'
     .dw vt100cursorstyle1                       ;vt100cursorstyle
     .db $05,'[',$00,';',$00,'m'
@@ -2567,23 +2566,23 @@ vt100table:
     .dw vt100cursorstyle4                       ;vt100cursorstyle
 
     .db $01,'H'
-    .dw vt100settab
+    .dw vt100settab								; ignored
     .db $02,'[','g'
-    .dw vt100cleartab
+    .dw vt100cleartab							; ignored
     .db $03,'[','0','g'
-    .dw vt100cleartab
+    .dw vt100cleartab							; ignored
     .db $03,'[','3','g'
-    .dw vt100clearalltabs
+    .dw vt100clearalltabs						; ignored
     .db $03,'[','5','n'
-    .dw vt100statusrep
+    .dw vt100statusrep							; ignored
     .db $02,'[','c'
-    .dw vt100whatareyou
+    .dw vt100whatareyou							; ignored
     .db $03,'[','0','c'
-    .dw vt100whatareyou
+    .dw vt100whatareyou							; ignored
     .db $01,'c'
-    .dw vt100reset
+    .dw vt100reset								; ignored
     .db $03,'[','6','n'
-    .dw vt100cursorreport
+    .dw vt100cursorreport						; ignored
 
     ; benryves: VT102 extensions
     .db $04,'[','1','2','h'
