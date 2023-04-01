@@ -264,6 +264,7 @@ no_vtarrows:
       call    catchup         ; *-* LINK CHECK *+*
         or      a               ;        cp      0
         jr      z, no_key       ; key doesn't have an entry
+		and		%01111111		; strip MSB (hack used to allow NUL to be typed)
         push    af
         ld      a, 1
         ld      (sendstat), a   ; flag the status bar to indicate send
@@ -1624,7 +1625,7 @@ keypad_mode:
        
 keypad_ctrl:
         ld      hl,keypad_table5
-        ld      a, 0
+        xor     a
         ld      (shift), a
       jp    catchup         ; *-* LINK CHECK *+*
         
@@ -2384,14 +2385,14 @@ keypad_table4:
 keypad_table5:
         .db 0,0,0,0                 ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
-        .db "=",29,23,18,13,8,0     ;9-F
+        .db 13,29,23,18,13,8,0      ;9-F enter, quote, wrmh, clear
         .db 0                       ;10, unused
-        .db "?",27,22,17,12,7,7     ;11-17
+        .db 31,27,22,17,12,7,128    ;11-17, negative, theta, vqlh, vars
         .db 0                       ;18, unused
-        .db ";".26,21,16,11,6,3,27  ;19-20
-        .db ")",25,20,15,10,5,2,0   ;21-28
+        .db 30,26,21,16,11,6,3,27   ;19-20, peroid, zupkfc, stat
+        .db 28,25,20,15,10,5,2,0    ;21-28, space, ytojeb, xt0n
         .db 0                       ;29, unused
-        .db 24,19,14,9,4,1,0        ;2A-30
+        .db 24,19,14,9,4,1,0        ;2A-30, xsnida, alpha
         .db 0,0,0,0,0               ;31-35, graph, trace, zoom, window, y=
         .db 0,0,127                 ;36-38, 2nd, mode, del
 

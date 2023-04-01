@@ -18,6 +18,7 @@ benryves@benryves.com
 - slowed down writing to the screen to prevent corrupt/scrambled display on
   newer calculator hardware with slower LCD drivers.
 - fixed BEJOTY keys producing lowercase letters when in capital mode.
+- fixed ctrl keys producing incorrect values and added ^@, ^\, ^^ and ^_.
 - added overflow check to the receive buffer, large transfers are no longer
   truncated.
 - clearing the screen now moves the cursor back to the top row.
@@ -184,7 +185,7 @@ represents the MATH key and the lower-right-most key represents ENTER.
 
 *** EXTRA ***           *** CTRL ***
 +---+---+---+---+       +---+---+---+---+
-|   |   |   |TAB|       |^A |^B |^C |   |
+|   |   |   |TAB|       |^A |^B |^C |^@ |
 +---+---+---+---+---+   +---+---+---+---+---+
 |   |   |   |   | _ |   |^D |^E |^F |^G |^H |
 +---+---+---+---+---+   +---+---+---+---+---+
@@ -196,7 +197,7 @@ represents the MATH key and the lower-right-most key represents ENTER.
 +---+---+---+---+---+   +---+---+---+---+---+
 | > | ! | @ | # | ~ |   |^X |^Y |^Z |^[ |^] |
 +---+---+---+---+---+   +---+---+---+---+---+
-    | ) | ; | ? | = |       |   |   |   |RET|
+    | ) | ; | ? | = |       |^\ |^^ |^_ |RET|
     +---+---+---+---+       +---+---+---+---+
 
 *NOTE* - When in Extra mode, the arrow keys operate as VT100 arrows and
