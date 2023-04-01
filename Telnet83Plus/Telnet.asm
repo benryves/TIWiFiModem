@@ -910,18 +910,17 @@ setzero:
 
 putbeep:
       call    catchup         ; *-* LINK CHECK *+*
-        ld      hl, 768
-        ld      ix, GRAPH_MEM
-        ld      bc, 0
+        ld      hl, GRAPH_MEM
+        ld      bc, 768
 xorlp:
       call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (ix)
-        xor     0ffh
-        ld      (ix), a
-        inc     ix
-        dec     hl
-        sbc     hl, bc
-        cp      0
+        ld      a, (hl)
+        cpl
+        ld      (hl), a
+        inc     hl
+        dec     bc
+        ld      a, b
+        or      c
         jr      nz, xorlp
       call    catchup         ; *-* LINK CHECK *+*
         call    zap
