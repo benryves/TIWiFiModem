@@ -41,7 +41,17 @@
 #include "mirage.inc"
 
 #define GRAPH_MEM       plotsscreen
-#define ESC     27
+
+BEL             .equ    7
+BS              .equ    8
+HT              .equ    9
+VT              .equ    11
+FF              .equ    12
+CR              .equ    13
+CAN             .equ    24
+SUB             .equ    26
+ESC             .equ    27
+
 NONE            .equ    0
 BOLD            .equ    1
 UNDERLINE       .equ    4
@@ -303,6 +313,17 @@ handle_esc:
         ld      (hl), a         ; load an ESC character into the sequence
         jr      incoming_done
 add2esc:
+        cp      ESC
+        jr      z, handle_esc
+        
+        cp      CAN
+        jr      nz, add2esc_not_can
+        
+        call    erase_esc
+        jr      incoming_done
+        
+add2esc_not_can:
+        
         ld      hl, seqbuf
         ld      d, a
         ld      a, (in_seq)
@@ -809,16 +830,20 @@ putchar:
         ld      a, 22
 putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
-        cp      10
+        cp      '\n'
         jr      z, putnewline
-        cp      13
+        cp      CR
         jr      z, putreturn
-        cp      8
+        cp      BS
         jr      z, putbs
-        cp      7
+        cp      BEL
         jr      z, putbeep
-        cp      9
+        cp      HT
         jp      z, puttab
+        cp      VT
+        jr      z, putnewline
+        cp      FF
+        jr      z, putnewline
 
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
