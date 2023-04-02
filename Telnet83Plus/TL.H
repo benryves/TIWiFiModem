@@ -94,9 +94,9 @@ sendesc:
         ld      a, ESC
 sendbyte:
         push    af
-        ld      a, (local_echo)
-        or      a
-        jr      z, no_local_echo
+        ld      a, (mode_flags)
+        and     LOCAL_ECHO_OFF
+        jr      nz, no_local_echo
         
         ; local echo, so inject the data into the receive buffer
         ld      de, (recv_free)

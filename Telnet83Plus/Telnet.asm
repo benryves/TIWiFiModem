@@ -58,6 +58,12 @@ UNDERLINE       .equ    4
 BLINK           .equ    5
 INVERSE         .equ    7
 
+; (mode_flags)
+INSERT:         .equ        %10000000 ; insert/overwrite
+LINE_WRAP:      .equ        %01000000 ; line wrap
+LOCAL_ECHO_OFF: .equ        %00100000 ; disable local echo
+CRLF:           .equ        %00010000 ; use CRLF instead of just CR
+
 PORT    .equ    0
 
   .org    $9d93
@@ -217,12 +223,15 @@ no_directarrow:
         bcall   (_getcsc)
         
         cp      skGraph
-        call    z, setlocalecho ; local echo toggle
+        call    z, togglelocalecho
         
         cp      skClear
         call    z, vt100reset
         
-        jr      no_key
+        cp      skEnter
+        call    z, togglenewlinemode
+        
+        jp      no_key
 
 no_on_held:
 
@@ -230,7 +239,7 @@ no_on_held:
       call    catchup         ; *-* LINK CHECK *+*
         bcall   (_getcsc)
         or      a
-        jr      z, no_key
+        jp      z, no_key
         
         cp      skGraph
         jp      z, exit         ; quit
@@ -284,8 +293,9 @@ no_vtarrows:
       call    catchup         ; *-* LINK CHECK *+*
         or      a               ;        cp      0
         jr      z, no_key       ; key doesn't have an entry
-        and     %01111111       ; strip MSB (hack used to allow NUL to be typed)
 send_key_byte:
+        push    af
+        and     %01111111       ; strip MSB (hack used to allow NUL to be typed and flag on RETURN key)
         push    af
         ld      a, 1
         ld      (sendstat), a   ; flag the status bar to indicate send
@@ -293,6 +303,14 @@ send_key_byte:
         pop     af
         call    sendbyte        ; chuck it out the window
       call    catchup         ; *-* LINK CHECK *+*
+        pop     af
+        cp      13+128
+        jr      nz, no_key
+        ld      a, (mode_flags)
+        and     CRLF
+        jr      z, no_key
+        ld      a, '\n'
+        call    sendbyte
 no_key:
         ; --- end ---
 
@@ -766,12 +784,18 @@ setwrapvalue:
         xor     a
         ret
 
-setlocalecho:
+togglelocalecho:
+        ld      b, LOCAL_ECHO_OFF
+        jr      toggleflags
+togglenewlinemode:
+        ld      b, CRLF
+        ; fall-through
+toggleflags:
       call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (local_echo)
-        xor     1
-        ld      (local_echo), a
-        xor a
+        ld      a, (mode_flags)
+        xor     b
+        ld      (mode_flags), a
+        xor     a
         ret
 
 putchar:
@@ -793,7 +817,7 @@ putchar_next1:
         cp      BS
         jr      z, putbs
         cp      BEL
-        jr      z, putbeep
+        jp      z, putbeep
         cp      HT
         jp      z, puttab
         cp      VT
@@ -830,8 +854,11 @@ putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
         jp      cursor_moved
 
-vt100index:
 putnewline:
+        ld      a, (mode_flags)
+        and     CRLF
+        call    nz, putreturn
+vt100index:
         ld      a, (scr_bot)
         ld      c, a
         ld      a, (pcury)
@@ -1258,8 +1285,14 @@ stat_no_shift:
         
         ld      e, 9
         ld      hl, statusshade
-        ld      a, (local_echo)
-        or      a
+        ld      a, (mode_flags)
+        and     LOCAL_ECHO_OFF
+        call    z, drawstatus
+        
+        ld      e, 3
+        ld      hl, statuscrlf
+        ld      a, (mode_flags)
+        and     CRLF
         call    nz, drawstatus
 
         ld      a, (mm_mode)
@@ -2249,6 +2282,8 @@ vt100reset:
         ld      a, 1
         ld      (mm_mode), a
         ld      (autoscroll), a
+        ld      a, LOCAL_ECHO_OFF
+        ld      (mode_flags), a
         
         ; set up default 8-wide tab stops
         ld      hl, tab_stops + 1
@@ -2379,19 +2414,46 @@ vt100whatareyou:				; DA (device attributes) ^[[c or ^[[0c, DECID (identify term
         ; VT220: ^[[?62;0c
         ; VT320: ^[[?63;0c
         ld		hl, vt100attributes
-        ld		b,  6
+        ld		b, 6
         jp      sendescseq
 vt100attributes:
         .db		"[?1;0c"
 
-vt102localechooff:
-        xor    a
-        ld      (local_echo), a
+vt100setmode:                   ; ^[[<mode>h SET MODE
+        call    getparamflagmask
+        ret     nz
+        ld      a, (mode_flags)
+        or      b
+        jr      vt100changemode        
+        
+vt100resetmode:                 ; ^[[<mode>l RESET MODE
+        call    getparamflagmask
+        ret     nz
+        ld      a, b
+        cpl
+        ld      b, a
+        ld      a, (mode_flags)
+        and     b
+vt100changemode:
+        ld      (mode_flags), a
         ret
 
-vt102localechoon:
-        ld      a, 1
-        ld      (local_echo), a
+getparamflagmask:
+        call    getparam
+getflagmask:
+        ld      b, %10000000
+        cp      4   ; insert/overwrite
+        ret     z
+        srl     b
+        cp      7   ; line wrapping
+        ret     z
+        srl     b
+        cp      12  ; local echo
+        ret     z
+        srl     b
+        cp      20  ; new line/line feed
+        ret     z
+        ld      b, 0
         ret
 
 getparam: ; benryves: now supports values with multiple digits
@@ -2497,7 +2559,7 @@ keypad_table:
 
         .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
-        .db 13,34,"wrmh",0          ;9-F, enter, quote, wrmh, clear
+        .db 13+128,34,"wrmh",0      ;9-F, enter, quote, wrmh, clear
         .db 0                       ;10, unused
         .db "/@vqlg",9              ;11-17, negative, theta, vqlh, vars
         .db 0                       ;18, unused
@@ -2516,7 +2578,7 @@ keypad_table:
 keypad_table2:
         .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
-        .db 13,"+-*/^",0            ;9-F, enter, +-*/^, clear
+        .db 13+128,"+-*/^",0        ;9-F, enter, +-*/^, clear
         .db 0                       ;10, unused
         .db "/","369)",0,9          ;11-17, \369), tan, vars
         .db 0                       ;18, unused
@@ -2535,7 +2597,7 @@ keypad_table2:
 keypad_table3:
         .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
-        .db 13,39,"WRMH",0          ;9-F, enter, quote, wrmh, clear
+        .db 13+128,39,"WRMH",0      ;9-F, enter, quote, wrmh, clear
         .db 0                       ;10, unused
         .db "?@VQLG",9              ;11-17, negative, theta, vqlh, vars
         .db 0                       ;18, unused
@@ -2573,7 +2635,7 @@ keypad_table4:
 keypad_table5:
         .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
-        .db 13,29,23,18,13,8,0      ;9-F enter, quote, wrmh, clear
+        .db 13+128,29,23,18,13,8,0  ;9-F enter, quote, wrmh, clear
         .db 0                       ;10, unused
         .db 31,27,22,17,12,7,128    ;11-17, negative, theta, vqlh, vars
         .db 0                       ;18, unused
@@ -2620,6 +2682,9 @@ statusjail
 statusctrl
         .db 10010100b
         .db 10100010b
+statuscrlf
+        .db 00100010b
+        .db 00010100b
 statusright
         .db 00000001b
         .db 00000001b
@@ -2691,9 +2756,9 @@ tab_stops   = scr_bot + 1       ; .db     0,1,..  ; tab stops
 
 mm_mode     = tab_stops + 10    ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
 
-local_echo  = mm_mode + 1       ; .db     0
+mode_flags  = mm_mode + 1       ; .db     0
 
-sdata_end   = local_echo + 1
+sdata_end   = mode_flags + 1
 sdata_s     = sdata_end - sdata
 
 ; temporary data
@@ -2833,13 +2898,12 @@ vt100table:
     .dw vt100reset
     .db $03,'[','6','n'
     .dw vt100cursorreport
-
-    ; benryves: VT102 extensions
-    .db $04,'[','1','2','h'
-    .dw vt102localechooff
-    .db $04,'[','1','2','l'
-    .dw vt102localechoon
-
+    
+    .db $03,'[',$00,'h'         ; ^[[<mode>h set mode
+    .dw vt100setmode
+    .db $03,'[',$00,'l'         ; ^[[<mode>l reset mode
+    .dw vt100resetmode
+    
     ; swallowed VT100 commands below
     .db $02,'#',$00             ; ^[#3/^[#4 double height line (DECDHL), ^[#5 single width line (DECSWL), ^[#6 double-width line (DECDWL)
     .dw vt100timefinish
@@ -2869,13 +2933,9 @@ vt100table:
     .dw vt100timefinish
     .db $05,'[','2',';',$00,'y' ; ^[2;<test>y (DECTST): Invoke confidence test.
     .dw vt100timefinish
-    .db $03,'[',$00,'h'         ; ^[[<mode>h set certain modes
+    .db $04,'[','?',$00,'h'     ; ^[[?<mode>h set ANSI-compatible mode
     .dw vt100timefinish
-    .db $03,'[',$00,'l'         ; ^[[<mode>l reset certain modes
-    .dw vt100timefinish
-    .db $04,'[','?',$00,'h'     ; ^[[?<mode>h set certain modes
-    .dw vt100timefinish
-    .db $04,'[','?',$00,'l'     ; ^[[?<mode>l reset certain modes
+    .db $04,'[','?',$00,'l'     ; ^[[?<mode>l reset ANSI-compatible mode
     .dw vt100timefinish
     .db $01,'='                 ; ^[= enter application keypad mode
     .dw vt100timefinish

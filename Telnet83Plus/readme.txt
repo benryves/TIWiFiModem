@@ -30,7 +30,7 @@ benryves@benryves.com
 - the minimap can be set to only appear when the view is scrolled manually
   (shaded status icon) or also when the screen scrolls automatically (filled
   status icon).
-- local echo can be toggled with [ON]+[Graph] or enabled/disabled with VT102
+- local echo can be toggled with [ON]+[GRAPH] or enabled/disabled with VT102
   escape sequences.
 - character attributes are combined (e.g. setting inverse text then setting
   underlined text no longer clears the previous inverted text).
@@ -38,6 +38,7 @@ benryves@benryves.com
   options or numbers with multiple digits.
 - beep (BEL) now properly flashes the screen.
 - reset back to initial state with [ON]+[CLEAR] or with VT100 ^[c.
+- linefeed/new line mode can be toggled with [ON]+[ENTER] or VT100 commands.
 - implemented more VT100 sequences, including:
   - IND (scroll up, ^[D) and RI (scroll down, ^[M).
   - NEL (new line, ^[E).
@@ -152,14 +153,14 @@ How to type all those keys from your keyboard on the dinky TI-83+ keypad
 ------------------------------------------------------------------------
 The controls for Telnet83 are:
 
-Graph    = Quit
-Clear    = Clears the screen
-ON+Clear = clears and resets the console to initial state
-Arrows   = Scroll
-2nd      = numeric mode
-Alpha    = capital mode
-Mode     = Extra mode
-X        = Ctrl mode
+GRAPH    = Quit
+CLEAR    = Clears the screen
+ON+CLEAR = clears and resets the console to initial state
+ARROWS   = Scroll
+2ND      = numeric mode
+ALPHA    = capital mode
+MODE     = Extra mode
+XT0n     = Ctrl mode
 DEL      = BackSpace
 STAT     = ESC
 VARS     = TAB
@@ -167,7 +168,8 @@ ZOOM     = jump the viewport to the far left
 WINDOW   = scroll the viewport to bring the cursor into view
 TRACE    = toggle minimap mode
 Y=       = Word Wrap toggle (useful when using irc -d)
-ON+Graph = local echo toggle
+ON+GRAPH = local echo toggle
+ON+ENTER = toggle CR or CR+LF mode for [ENTER] key
 
 In order to fit all the keys onto the TI-83+ keypad, I split up the keypad
 into 5 modes: Normal, Numeric, Capital, Extra, and Ctrl.  To go into these
@@ -217,6 +219,13 @@ represents the MATH key and the lower-right-most key represents ENTER.
 
          When in Ctrl mode, the [DEL] key acts as a real delete instead of
          ^H.  Use this if you get ^H when attempting to backspace.
+         
+         The [ENTER] key defaults to sending CR and when the terminal receives
+         LF, FF or VT it moves the cursor down to the next line in the same
+         column.
+         By pressing [ON]+[ENTER] you can toggle a mode where [ENTER] sends
+         CR LF and when the terminal receives LF, FF or VT it moves the cursor
+         down to the next line and resets it to the first column.
 
 
 -----
