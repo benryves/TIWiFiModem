@@ -806,7 +806,7 @@ putchar:
         or      a
         ret     z
         jp      p, putchar_next1
-        xor     a
+        ld      a, 22
 putchar_next1:
       call    catchup         ; *-* LINK CHECK *+*
         cp      10
@@ -1510,16 +1510,16 @@ getxy:
 
 cursor_on:
         ld      a, (curstat)
-        cp      1
-        ret     z
+        or      a
+        ret     nz
       call    catchup         ; *-* LINK CHECK *+*
         call    getxy
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (hl)
         ld      (curshad), a
-        ld      a, 0
+        xor     a
         ld      (hl), a
-        ld      a, 1
+        inc     a
         ld      (curstat), a
         ret
 
