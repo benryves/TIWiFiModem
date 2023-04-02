@@ -30,7 +30,7 @@ benryves@benryves.com
 - the minimap can be set to only appear when the view is scrolled manually
   (shaded status icon) or also when the screen scrolls automatically (filled
   status icon).
-- local echo can be toggled with [ON]+[Y=] or enabled/disabled with VT102
+- local echo can be toggled with [ON]+[Graph] or enabled/disabled with VT102
   escape sequences.
 - character attributes are combined (e.g. setting inverse text then setting
   underlined text no longer clears the previous inverted text).
@@ -167,7 +167,7 @@ ZOOM     = jump the viewport to the far left
 WINDOW   = scroll the viewport to bring the cursor into view
 TRACE    = toggle minimap mode
 Y=       = Word Wrap toggle (useful when using irc -d)
-ON+Y=    = local echo toggle
+ON+Graph = local echo toggle
 
 In order to fit all the keys onto the TI-83+ keypad, I split up the keypad
 into 5 modes: Normal, Numeric, Capital, Extra, and Ctrl.  To go into these

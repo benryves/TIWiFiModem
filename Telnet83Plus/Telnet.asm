@@ -216,7 +216,7 @@ no_directarrow:
         ; ON is held, so use alternate functions
         bcall   (_getcsc)
         
-        cp      skYEqu
+        cp      skGraph
         call    z, setlocalecho ; local echo toggle
         
         cp      skClear
