@@ -49,6 +49,8 @@ benryves@benryves.com
   - DSR (device status report, ^[[5n).
   - CPR (cursor position report, ^[[6n).
   - DECSC (save cursor, ^[7) and DECRC (restore cursor, ^[8).
+  - HTS (horizontal tabulation set, ^[H).
+  - TBC (tabulation clear, ^[[g or ^[[0g for single tab stop, ^[[3g for all).
 
 *** Changes since v1.4 ***
 - cleaned up the source, it's now part of this release.

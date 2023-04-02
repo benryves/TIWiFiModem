@@ -818,7 +818,7 @@ putchar_next1:
         cp      7
         jr      z, putbeep
         cp      9
-        jr      z, puttab
+        jp      z, puttab
 
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
@@ -841,8 +841,6 @@ putchar_next1:
         call    getxy
       call    catchup         ; *-* LINK CHECK *+*
         pop     af
-        ;cp      128
-        ;call    nc, setzero
         ld      (hl), a
 
         ld      a, (curx)
@@ -883,15 +881,6 @@ putcr:
         call    putnewline
       call    catchup         ; *-* LINK CHECK *+*
         ret
-setzero:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, 0
-        ret
-
-puttab:
-        ld      a, (curx)
-        cp      79
-        ret     z
 
 putbeep:
       call    catchup         ; *-* LINK CHECK *+*
@@ -912,29 +901,52 @@ xorlp:
       call    catchup         ; *-* LINK CHECK *+*
         ret
 
-
-tablp:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      b, a
-        sub     8
-        jr      nc, tablp
-
-        ld      a, 8
-        sub     b
-        ld      b, a
+puttab:
+        call    getcurtab
+        ret     c
+        
+        ld      d, a
+        
+        ld      a, (wrap)
+        dec     a
+        ld      c, a
+        
+        call    getwrappedcurx
+        jr      nz, puttab_nowrap
+        
+        call    putcr
+        
         ld      a, (curx)
-        add     a, b
-        cp      80
-        call    nc, fixtab
+puttab_nowrap:
+        cp      c
+        ret     nc
+        
+        ld      b, a
+        
+        ; b = column, c = max column, d = bitmask, hl -> tab data
+        
+puttab_not_found:
+        
+        inc     b
+        
+        ld      a, b
+        cp      c
+        jr      z, puttab_found
+        
+        rrc     d
+        jr      nc, puttab_not_advanced
+        inc     hl
+puttab_not_advanced:
+            
+        ld      a, (hl)
+        and     d
+        jr      z, puttab_not_found
+        
+        ld      a, b
+        
+puttab_found:
         ld      (curx), a
-      call    catchup         ; *-* LINK CHECK *+*
         jp      cursor_moved
-fixtab:
-        ld      a, 79
-      call    catchup         ; *-* LINK CHECK *+*
-        jp      cursor_moved
-
-
 
 findchar:
       call    catchup         ; *-* LINK CHECK *+*
@@ -2256,6 +2268,13 @@ vt100reset:
         ld      a, 1
         ld      (mm_mode), a
         ld      (autoscroll), a
+        
+        ; set up default 8-wide tab stops
+        ld      hl, tab_stops + 1
+        ld      de, tab_stops + 2
+        ld      bc, 8
+        ld      (hl), %10000000
+        ldir
 
         call    buildtable      ; build the font table
         call    recv_init       ; benryves: initialise the receive buffer
@@ -2263,10 +2282,69 @@ vt100reset:
         xor     a
         ret
 
-vt100settab:
-vt100cleartab:
-;vt100cleartab:
-vt100clearalltabs:
+getwrappedcurx:
+        push    bc
+        ld      a, (wrap)
+        ld      b, a
+        ld      a, (curx)
+        cp      b
+        pop     bc
+        ret     nz
+        xor     a
+        ret
+
+getcurtab:
+        call    getwrappedcurx
+gettab:                         ; in: a = cursor position, out: ca = invalid position, otherwise: hl->tab byte, a = bitmask
+        
+        ; range check
+        cp      80
+        ccf
+        ret     c
+        
+        ; get pointer
+        ld      c, a
+        srl     c
+        srl     c
+        srl     c
+        ld      b, 0
+        ld      hl, tab_stops
+        add     hl, bc
+        
+        ; get bitmask
+        and     7
+        ld      b, a
+        ld      a, %10000000
+        
+        ret     z
+
+gettab_bitmask:
+        srl     a
+        djnz    gettab_bitmask
+        ret
+        
+
+vt100settab:                    ; HTS (horizontal tabulation set) ^[H
+        call    getcurtab
+        ret     c
+        or      (hl)
+        ld      (hl), a
+        ret
+        
+vt100cleartab:                  ; TBC (tabulation clear) ^[[g or ^[[0g
+        call    getcurtab
+        ret     c
+        cpl
+        and     (hl)
+        ld      (hl), a
+        ret
+        
+vt100clearalltabs:              ; clears all horizontal tab stops ^[[3g
+        ld      hl, tab_stops
+        ld      de, tab_stops + 1
+        ld      bc, 9
+        ld      (hl), 0
+        ldir
         ret
 
 vt100timefinish:
@@ -2630,7 +2708,9 @@ sy          = sx + 1            ; .db     0       ; /
 scr_top     = sy + 1            ; .db     0       ; top of scrolling region
 scr_bot     = scr_top + 1       ; .db     23      ; bottom of scrolling region
 
-mm_mode     = scr_bot + 1       ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
+tab_stops   = scr_bot + 1       ; .db     0,1,..  ; tab stops
+
+mm_mode     = tab_stops + 10    ; .db     1       ; show minimap never (0), manually scrolled (1), auto scrolled (2)
 
 local_echo  = mm_mode + 1       ; .db     0
 
@@ -2754,13 +2834,14 @@ vt100table:
     .dw vt100cursorstyle4                       ;vt100cursorstyle
 
     .db $01,'H'
-    .dw vt100settab                             ; ignored
+    .dw vt100settab
     .db $02,'[','g'
-    .dw vt100cleartab                           ; ignored
+    .dw vt100cleartab
     .db $03,'[','0','g'
-    .dw vt100cleartab                           ; ignored
+    .dw vt100cleartab
     .db $03,'[','3','g'
-    .dw vt100clearalltabs                       ; ignored
+    .dw vt100clearalltabs
+    
     .db $03,'[','5','n'
     .dw vt100statusrep
     .db $02,'[','c'
