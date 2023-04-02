@@ -2861,9 +2861,10 @@ vt100table:
     .db $04,'[','1','2','l'
     .dw vt102localechoon
 
-    .db $02,'#',$00             ;this accounts for vt100 commands impossible on 85
-    .dw vt100timefinish         ;this label just jumps them back to the end of vt100
-    .db $03,'[',$00,'q'
+    ; swallowed VT100 commands below
+    .db $02,'#',$00             ; ^[#3/^[#4 double height line (DECDHL), ^[#5 single width line (DECSWL), ^[#6 double-width line (DECDWL)
+    .dw vt100timefinish
+    .db $03,'[',$00,'q'         ; ^[<led>q: LED status
     .dw vt100timefinish
     .db $05,'[',$00,';',$00,'q'
     .dw vt100timefinish
@@ -2871,43 +2872,35 @@ vt100table:
     .dw vt100timefinish
     .db $09,'[',$00,';',$00,';',$00,';',$00,'q'
     .dw vt100timefinish
-    .db $02,'(','A'
+    .db $02,'(','A'             ; ^[(A (SCS): UK character set as G0
     .dw vt100timefinish
-    .db $02,')','A'
+    .db $02,')','A'             ; ^[)A (SCS): UK character set as G1
     .dw vt100timefinish
-    .db $02,'(','B'
+    .db $02,'(','B'             ; ^[(B (SCS): US character set as G0.
     .dw vt100timefinish
-    .db $02,')','B'
+    .db $02,')','B'             ; ^[)B (SCS): UK character set as G1
     .dw vt100timefinish
-    .db $02,'(','0'
+    .db $02,'(',$00             ; ^[(0 special characters and line drawing, ^[(1 alternate ROM, ^[(2 alternate ROM special character set as G0.
     .dw vt100timefinish
-    .db $02,')','0'
+    .db $02,')',$00             ; ^[)0 special characters and line drawing, ^[(1 alternate ROM, ^[(2 alternate ROM special character set as G1.
     .dw vt100timefinish
-    .db $02,'(','1'
+    .db $01,'N'                 ; ^[N single shift 2 (SS2) selects G2 (default) character set for one character.
     .dw vt100timefinish
-    .db $02,')','1'
+    .db $01,'O'                 ; ^[O single shift 3 (SS3) selects G3 (default) character set for one character.
     .dw vt100timefinish
-    .db $02,'(','2'
+    .db $05,'[','2',';',$00,'y' ; ^[2;<test>y (DECTST): Invoke confidence test.
     .dw vt100timefinish
-    .db $02,')','2'
+    .db $03,'[',$00,'h'         ; ^[[<mode>h set certain modes
     .dw vt100timefinish
-    .db $01,'O'
+    .db $03,'[',$00,'l'         ; ^[[<mode>l reset certain modes
     .dw vt100timefinish
-    .db $01,'N'
+    .db $04,'[','?',$00,'h'     ; ^[[?<mode>h set certain modes
     .dw vt100timefinish
-    .db $05,'[','2',';',$00,'y'
+    .db $04,'[','?',$00,'l'     ; ^[[?<mode>l reset certain modes
     .dw vt100timefinish
-    .db $03,'[',$00,'h'
+    .db $01,'='                 ; ^[= enter application keypad mode
     .dw vt100timefinish
-    .db $03,'[',$00,'l'
-    .dw vt100timefinish
-    .db $04,'[','?',$00,'h'
-    .dw vt100timefinish
-    .db $04,'[','?',$00,'l'
-    .dw vt100timefinish
-    .db $01,'='
-    .dw vt100timefinish
-    .db $01,'>'
+    .db $01,'>'                 ; ^[> exit application keypad mode
     .dw vt100timefinish
     
     .db $FF
