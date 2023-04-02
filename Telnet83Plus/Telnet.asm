@@ -106,13 +106,13 @@ start:
         
         ; first check for enough free memory
         ld      hl, buffers_s
-        bcall(_EnoughMem)
+        bcall   (_EnoughMem)
         jp     c, quittoshell
         
         ; if there is, insert it into the variable
         ex      de, hl
         ld      de, buffers
-        bcall(_InsertMem)
+        bcall   (_InsertMem)
         
         ; reset the terminal
         call    vt100reset
@@ -214,7 +214,7 @@ no_directarrow:
         
       call    catchup         ; *-* LINK CHECK *+*
         ; ON is held, so use alternate functions
-        bcall(_getcsc)
+        bcall   (_getcsc)
         
         cp      skYEqu
         call    z, setlocalecho ; local echo toggle
@@ -228,27 +228,32 @@ no_on_held:
 
         ; --- check keypad the normal way and respond accordingly ---
       call    catchup         ; *-* LINK CHECK *+*
-        bcall(_getcsc)          ;        call    getch
-        cp      skGraph         ;        cp      15h
+        bcall   (_getcsc)
+        or      a
+        jr      z, no_key
+        
+        cp      skGraph
         jp      z, exit         ; quit
-        cp      skClear         ;        cp      45h
+        cp      skClear
         call    z, vt100entirescreenhome
-        cp      skZoom          ;        cp      13h
+        cp      skZoom
         call    z, jumphome     ; zoom to the left edge [ZOOM] button
-        cp      skWindow        ; benryves:
+        cp      skWindow
         call    z, jumpcursor   ; bring the cursor into the current [WINDOW]
-        cp      skTrace         ;        cp      14h
+        cp      skTrace
         call    z, mm_mode_swap ; toggle minimap mode
-        cp      skYEqu          ;        cp      11h
+        cp      skYEqu
         call    z, setwrap      ; toggle the character wrap
-        cp      sk2nd           ;        cp      21h
-        call    z, set2nd       ; set numeric
-        cp      skAlpha         ;        cp      31h
-        call    z, setalph      ; set capital
-        cp      skMode          ;        cp      22h
-        call    z, setmode      ; set extra
-        cp      skGraphvar      ;        cp      32h
-        call    z, setctrl      ; set ctrl
+        
+        ; shift modes - do not call, only jump
+        cp      sk2nd
+        jp      z, toggle2nd    ; set numeric
+        cp      skAlpha
+        jp      z, togglealph   ; set capital
+        cp      skMode
+        jp      z, togglemode   ; set extra
+        cp      skGraphvar
+        jp      z, togglectrl   ; set ctrl
         
       call    catchup         ; *-* LINK CHECK *+*
         ld      d, a
@@ -257,17 +262,22 @@ no_on_held:
         ld      a, d
         jr      nz, no_vtarrows
 
-        cp      skUp                ;        cp      25h
-        call    z, send_vt100_up
-        cp      skDown              ;        cp      34h
-        call    z, send_vt100_down
-        cp      skLeft              ;        cp      24h
-        call    z, send_vt100_left
-        cp      skRight             ;        cp      26h
-        call    z, send_vt100_right
+        cp      05h             ; cursor keys are all in range 1-4
+        jr      nc, no_vtarrows
+        
+        call    keypad2ascii
+        
+        push    af
+      call    catchup         ; *-* LINK CHECK *+*
+        call    sendescbracket
+        pop     af
+        jr      send_key_byte
+
 no_vtarrows:
-        or      a               ;        cp      0
-        jr      z, no_key       ; no key
+        
+        ; double check it really isn't a cursor key
+        cp      05h
+        jr      c, no_key
 
       call    catchup         ; *-* LINK CHECK *+*
         call    keypad2ascii    ; convert the key into ASCII
@@ -275,6 +285,7 @@ no_vtarrows:
         or      a               ;        cp      0
         jr      z, no_key       ; key doesn't have an entry
         and     %01111111       ; strip MSB (hack used to allow NUL to be typed)
+send_key_byte:
         push    af
         ld      a, 1
         ld      (sendstat), a   ; flag the status bar to indicate send
@@ -385,8 +396,39 @@ exit:
         ; benryves: free dynamically-allocated buffers
         ld      hl, buffers
         ld      de, buffers_s
-        bcall(_DelMem)
+        bcall   (_DelMem)
         jp      quittoshell
+
+;-----------+----------------------------------------------------+----------+
+; Telnet 83 | Keypad shift routines (jump, do not call)          | benryves |
+;-----------+----------------------------------------------------+----------+
+toggle2nd:
+        ld      a, 1
+        jr      toggle_shift
+togglealph:
+        ld      a, 2
+        jr      toggle_shift
+togglemode:
+        ld      a, 3
+        jr      toggle_shift
+togglectrl:
+        ld      a, 4
+        ; fall-through
+
+toggle_shift:  
+      call    catchup         ; *-* LINK CHECK *+*
+        push    bc
+        ld      b, a
+        ld      a, (shift)
+        cp      b
+        ld      a, b
+        jr      nz, shift_on
+        xor     a
+shift_on:
+        ld      (shift), a
+        pop     bc
+        xor     a
+        jp      no_key
 
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | AppVar helper functions                            | benryves |
@@ -397,7 +439,7 @@ findappvar:
         ; does the appvar exist?
         ld      hl, appvarname
         rst     rMOV9TOOP1
-        bcall(_ChkFindSym)
+        bcall   (_ChkFindSym)
         ret     c
         
 appvarexists:
@@ -410,11 +452,11 @@ appvararchived:
 
         ; is there enough free RAM to unarchive it?
         ld      hl, term_s + sdata_s + 256
-        bcall(_EnoughMem)
+        bcall   (_EnoughMem)
         ret     c
         
         ; unarchive the appvar and search for it again
-        bcall(_Arc_Unarc)
+        bcall   (_Arc_Unarc)
         jr      findappvar
 
 
@@ -445,12 +487,12 @@ saveappvar:
         
         ; is there enough space to create the appvar?
         ld      hl, term_s + sdata_s + 256
-        bcall(_EnoughMem)
+        bcall   (_EnoughMem)
         ret     c
         
         ; create the appvar
         ld      hl, term_s + sdata_s
-        bcall(_CreateAppVar)
+        bcall   (_CreateAppVar)
 
 overwriteappvar:
         ; restore character under the cursor
@@ -511,47 +553,6 @@ appvarname:
 ;-----------+----------------------------------------------------+----------+
 ; Telnet 83 | Helper functions                                   | Infiniti |
 ;-----------+----------------------------------------------------+----------+
-send_vt100_up:
-      call    catchup         ; *-* LINK CHECK *+*
-        push    af
-        ld      a, 'A'
-        call    send_vt100_arrow
-        pop     af
-        ret
-        
-send_vt100_down:
-      call    catchup         ; *-* LINK CHECK *+*
-        push    af
-        ld      a, 'B'
-        call    send_vt100_arrow
-        pop     af
-        ret
-        
-send_vt100_left:
-      call    catchup         ; *-* LINK CHECK *+*
-        push    af
-        ld      a, 'D'
-        call    send_vt100_arrow
-        pop     af
-        ret
-send_vt100_right:
-      call    catchup         ; *-* LINK CHECK *+*
-        push    af
-        ld      a, 'C'
-        call    send_vt100_arrow
-        pop     af
-        ret
-
-send_vt100_arrow:
-        push    af
-      call    catchup         ; *-* LINK CHECK *+*
-        call    sendesc
-        ld      a, '['
-        call    sendbyte
-        pop     af
-        call    sendbyte
-      jp    catchup           ; *-* LINK CHECK *+*
-
 killesc:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (in_seq)
@@ -751,52 +752,7 @@ mm_not_2:
 mmzero:
         ld      (mm_mode), a
         ret
-
-
-set2nd:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (shift)
-        cp      1
-        jr      z, setshiftOff
-        ld      a, 1
-        ld      (shift), a
-        xor     a           ;        ld      a, 0
-        ret
-setshiftOff
-      call    catchup         ; *-* LINK CHECK *+*
-        xor     a               ;        ld      a, 0
-        ld      (shift), a
-        xor     a               ;        ld      a, 0
-        ret
-setalph:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (shift)
-        cp      2
-        jr      z, setshiftOff
-        ld      a, 2
-        ld      (shift), a
-        xor     a               ;        ld      a, 0
-        ret
-setmode:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (shift)
-        cp      3
-        jr      z, setshiftOff
-        ld      a, 3
-        ld      (shift), a
-        xor     a               ;        ld      a, 0
-        ret
-setctrl:
-      call    catchup         ; *-* LINK CHECK *+*
-        ld      a, (shift)
-        cp      4
-        jr      z, setshiftOff
-        ld      a, 4
-        ld      (shift), a
-        xor     a               ;        ld      a, 0
-        ret
-
-
+        
 setwrap:
       call    catchup         ; *-* LINK CHECK *+*
         ld      a, (wrap)
@@ -2379,9 +2335,7 @@ vt100cursorreport:              ; CPR (cursor position report) ^[[6n
     
         ; response is ^[[<y>;<x>R
         
-        call    sendesc
-        ld      a, '['
-        call    sendbyte
+        call    sendescbracket
         
         ; send Y
         
@@ -2541,7 +2495,7 @@ keypad_table:
         ;*grr, how annoying, why can't you use a 
         ;decent keypress routine?*
 
-        .db 0,0,0,0                 ;1-4, arrows
+        .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
         .db 13,34,"wrmh",0          ;9-F, enter, quote, wrmh, clear
         .db 0                       ;10, unused
@@ -2560,7 +2514,7 @@ keypad_table:
 ;        .db 'n','o','p','q','r'        .db 's','t','u','v','w'
 ;        .db 'x','y','z','@', 34        .db   0,' ','.','/', 13
 keypad_table2:
-        .db 0,0,0,0                 ;1-4, arrows
+        .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
         .db 13,"+-*/^",0            ;9-F, enter, +-*/^, clear
         .db 0                       ;10, unused
@@ -2579,7 +2533,7 @@ keypad_table2:
 ;        .db   0,'7','8','9','*'        .db '<','4','5','6','-'
 ;        .db '>','1','2','3','+'        .db   0,'0','.','\', 13
 keypad_table3:
-        .db 0,0,0,0                 ;1-4, arrows
+        .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
         .db 13,39,"WRMH",0          ;9-F, enter, quote, wrmh, clear
         .db 0                       ;10, unused
@@ -2598,7 +2552,7 @@ keypad_table3:
 ;        .db 'N','O','P','Q','R'        .db 'S','T','U','V','W'
 ;        .db 'X','Y','Z','@', 39        .db   0,' ',':','?', 13
 keypad_table4:
-        .db 0,0,0,0                 ;1-4, arrows
+        .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
         .db "=~][|_",0              ;9-F, enter, quote, wrmh, clear
         .db 0                       ;10, unused
@@ -2617,7 +2571,7 @@ keypad_table4:
 ;        .db   0,'&','*','(','['        .db '<','$','%','^',']'
 ;        .db '>','!','@','#','~'        .db   0,')',';','?','='
 keypad_table5:
-        .db 0,0,0,0                 ;1-4, arrows
+        .db "BDCA"                  ;1-4, arrows
         .db 0,0,0,0                 ;5-8, unused
         .db 13,29,23,18,13,8,0      ;9-F enter, quote, wrmh, clear
         .db 0                       ;10, unused

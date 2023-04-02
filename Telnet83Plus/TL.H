@@ -86,6 +86,10 @@ sendseq:
         djnz    sendseq
         ret
 
+sendescbracket:
+        call    sendesc
+        ld      a, '['
+        jr      sendbyte
 sendesc:
         ld      a, ESC
 sendbyte:
