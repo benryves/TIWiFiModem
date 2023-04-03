@@ -9,9 +9,9 @@ class TILP : public Stream {
 
     static const int BUFFER_SIZE = 256;
 
-    static const int TIMEOUT_TICK = 4; // in microseconds
-    static const int TIMEOUT_INITIAL = 50000; // in ticks, 50000 = 200ms
-    static const int TIMEOUT_BIT = 2500; // in ticks, 2500 = 10ms
+    static const int TIMEOUT_TICK    =    10; // in microseconds
+    static const int TIMEOUT_INITIAL = 25000; // in ticks, 25000 = 250ms
+    static const int TIMEOUT_BIT     =  1000; // in ticks, 1000 = 10ms
 
     int pinD0; // D0 = tip, red
     int pinD1; // D1 = ring, white

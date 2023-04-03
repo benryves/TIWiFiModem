@@ -45,6 +45,7 @@ bool TILP::waitReady() {
   while (!digitalRead(this->pinD0) || !digitalRead(this->pinD1)) {
     delayMicroseconds(TILP::TIMEOUT_TICK);
     if (--timeout == 0) return false;
+    yield();
   }
   return true;
 }
@@ -116,7 +117,8 @@ bool TILP::sendRaw(uint8_t value) {
     // shift to next bit
     value >>= 1;
     timeout = TILP::TIMEOUT_BIT;
-        
+    
+    yield();
   }
 
   this->ledOff();
@@ -188,10 +190,12 @@ bool TILP::getRaw(uint8_t *value) {
       
       // nothing happening yet
       delayMicroseconds(TILP::TIMEOUT_TICK);
-      if (--timeout == 0) goto timeout;      
+      if (--timeout == 0) goto timeout;
+      if (timeout > TIMEOUT_BIT) yield();
 
     }
-      
+    
+    yield();
   }
   
   this->ledOff();
