@@ -33,8 +33,8 @@ WaitRecBit:
         cp LINKMASK
         jr z,WaitRecBit
 ReceiveCont:
-        sub (LINKMASK/3)*2  ; benryves: parens added to fix order of operations bug in assembler
-        ld a,(LINKMASK/3)*2 ; 
+        sub LINKMASK/3*2
+        ld a,LINKMASK/3*2
         ld d,D0LD1H
         jr c,ReceiveLow
         rra
